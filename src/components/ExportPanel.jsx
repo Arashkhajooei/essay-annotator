@@ -115,10 +115,12 @@ export default function ExportPanel({ user, isAdmin }) {
 
   return (
     <>
-      <h1 className="page-title">Export</h1>
-      <p className="page-sub">
+      <h1 className="hero-title">
+        Export <span className="hero-sub">— training-ready datasets</span>
+      </h1>
+      <p className="hero-desc">
         {isAdmin
-          ? 'Pick annotators and essays, then download training-ready datasets — combined or one file per annotator.'
+          ? 'Pick annotators and essays, then download datasets — combined or one file per annotator.'
           : 'Download your annotations as training-ready datasets.'}
       </p>
 
@@ -237,6 +239,7 @@ export default function ExportPanel({ user, isAdmin }) {
       <div className="export-grid">
         {FORMATS.map((f) => (
           <div className="export-card" key={f.key} onClick={() => doExport(f)}>
+            <div className="fmt-tile" style={{ '--t': f.tint }}>{f.glyph}</div>
             <div className="fmt">{busyFmt === f.key ? 'Building…' : f.name}</div>
             <div className="desc">{f.desc}</div>
             <span className="ext">{f.ext}</span>

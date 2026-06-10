@@ -3,7 +3,7 @@ import { supabase } from './lib/supabase.js'
 import { onToast } from './lib/toast.js'
 import AuthScreen from './components/AuthScreen.jsx'
 import SetupScreen from './components/SetupScreen.jsx'
-import Sidebar from './components/Sidebar.jsx'
+import TopNav from './components/TopNav.jsx'
 import EssayList from './components/EssayList.jsx'
 import Annotator from './components/Annotator.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
@@ -136,17 +136,17 @@ export default function App() {
   }
 
   return (
-    <div className="app">
-      <Sidebar
+    <>
+      <TopNav
         route={route}
         profile={profile}
         isAdmin={isAdmin}
         onLogout={() => supabase.auth.signOut()}
       />
-      <main className="main">
-        <div className="main-inner">{content}</div>
+      <main className="page">
+        <div className="page-inner">{content}</div>
       </main>
       <Toasts />
-    </div>
+    </>
   )
 }

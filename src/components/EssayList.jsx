@@ -13,7 +13,7 @@ export default function EssayList({ user, isAdmin }) {
 
   async function load() {
     const [{ data: es, error }, { data: anns }, { data: subs }] = await Promise.all([
-      supabase.from('essays').select('id, title, prompt, created_at').order('created_at'),
+      supabase.from('essays').select('id, title, prompt, content, created_at').order('created_at'),
       supabase.from('annotations').select('id, essay_id').eq('user_id', user.id),
       supabase.from('essay_submissions').select('essay_id').eq('user_id', user.id),
     ])
@@ -68,60 +68,101 @@ export default function EssayList({ user, isAdmin }) {
   if (!essays) return <div className="spinner" />
 
   const done = essays.filter((e) => submitted.has(e.id)).length
+  const totalAnns = Object.values(counts).reduce((s, n) => s + n, 0)
+  const wordsOf = (e) => e.content.split(/\s+/).filter(Boolean).length
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <h1 className="page-title">Essays</h1>
-          <p className="page-sub">
-            {essays.length} essay{essays.length === 1 ? '' : 's'} · {done} submitted by you
-          </p>
+      <h1 className="hero-title">
+        Essay Corpus <span className="hero-sub">— tag rhetorical moves, essay by essay</span>
+      </h1>
+      <p className="hero-desc">
+        Open an essay and mark its <b>Lead, Position, Claims, Counterclaims, Rebuttals, Evidence
+        and Concluding Statement</b>. Your annotations are private to your account; submit each
+        essay when you&apos;re done and grab datasets from the{' '}
+        <a href="#/export">Export</a> page.
+      </p>
+
+      <div className="hl-row">
+        <div className="hl-item">
+          <div className="hl-label"><span className="dot" style={{ background: '#7da6f2' }} />essays in corpus</div>
+          <div className="hl-value">{essays.length}</div>
         </div>
-        <button className="btn" onClick={() => setShowAdd(true)}>
-          + New essay
-        </button>
+        <div className="hl-item">
+          <div className="hl-label"><span className="dot" style={{ background: '#fcd34d' }} />your annotations</div>
+          <div className="hl-value">{totalAnns}</div>
+        </div>
+        <div className="hl-item">
+          <div className="hl-label"><span className="dot" style={{ background: '#4ade80' }} />submitted by you</div>
+          <div className="hl-value">
+            {done}<span className="hl-unit">/ {essays.length}</span>
+          </div>
+        </div>
+        <div className="hl-item">
+          <div className="hl-label"><span className="dot" style={{ background: '#f472b6' }} />remaining</div>
+          <div className="hl-value">{essays.length - done}</div>
+        </div>
       </div>
 
-      {essays.length === 0 ? (
-        <div className="empty">
-          <div className="big">📝</div>
-          No essays yet. {isAdmin ? 'Add the first one with “New essay”.' : 'Ask an admin to add some, or add your own.'}
+      <div className="table-card">
+        <div className="table-toolbar">
+          <span style={{ color: 'var(--text-3)', fontSize: 12 }}>
+            {essays.length} essay{essays.length === 1 ? '' : 's'} · click a row to annotate
+          </span>
+          <button className="btn" onClick={() => setShowAdd(true)}>
+            + New essay
+          </button>
         </div>
-      ) : (
-        <div className="cards">
-          {essays.map((e, i) => {
-            const n = counts[e.id] || 0
-            const isDone = submitted.has(e.id)
-            return (
-              <div
-                key={e.id}
-                className="essay-card"
-                onClick={() => (window.location.hash = `#/annotate/${e.id}`)}
-              >
-                <div className="essay-card-head">
-                  <div className={`story-ring ${isDone ? 'done' : ''}`}>
-                    <div className="story-ring-inner">{i + 1}</div>
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="essay-card-title">{e.title}</div>
-                    <div className="essay-card-meta">
-                      {new Date(e.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-                {e.prompt && <div className="essay-card-prompt">{e.prompt}</div>}
-                <div className="essay-card-foot">
-                  <span className="pill">
-                    {n} annotation{n === 1 ? '' : 's'}
-                  </span>
-                  {isDone && <span className="pill submitted">✓ Submitted</span>}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
+        {essays.length === 0 ? (
+          <div className="empty" style={{ border: 'none' }}>
+            <div className="big">📝</div>
+            No essays yet. {isAdmin ? 'Add the first one with “New essay”.' : 'Add one or ask an admin.'}
+          </div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Essay</th>
+                <th>Words</th>
+                <th>Your annotations</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {essays.map((e, i) => {
+                const n = counts[e.id] || 0
+                const isDone = submitted.has(e.id)
+                return (
+                  <tr key={e.id} className="rowlink" onClick={() => (window.location.hash = `#/annotate/${e.id}`)}>
+                    <td className={`rank ${i === 0 ? 'top' : ''}`}>{i + 1}</td>
+                    <td>
+                      <div className="cell-title">{e.title}</div>
+                      <div className="cell-sub">
+                        added {new Date(e.created_at).toLocaleDateString()}
+                        {e.prompt ? ` · ${e.prompt.slice(0, 70)}${e.prompt.length > 70 ? '…' : ''}` : ''}
+                      </div>
+                    </td>
+                    <td className="cell-dim">{wordsOf(e)}</td>
+                    <td>
+                      <span className={`chip ${n > 0 ? 'amber' : 'dim'}`}>{n}</span>
+                    </td>
+                    <td>
+                      {isDone ? (
+                        <span className="chip green">✓ Submitted</span>
+                      ) : n > 0 ? (
+                        <span className="chip blue">In progress</span>
+                      ) : (
+                        <span className="chip dim">Not started</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {showAdd && (
         <div className="modal-overlay" onClick={() => setShowAdd(false)}>

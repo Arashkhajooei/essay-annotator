@@ -337,8 +337,13 @@ export default function Annotator({ essayId, user }) {
             <h3>Labels</h3>
             <div className="legend">
               {labels.map((l) => (
-                <span key={l.id} className="legend-chip" title={l.description || ''}>
-                  <span className="dot" style={{ background: l.color }} />
+                <span
+                  key={l.id}
+                  className="legend-chip"
+                  style={{ '--c': l.color }}
+                  title={l.description || ''}
+                >
+                  <span className="dot" />
                   {l.name}
                 </span>
               ))}
@@ -412,7 +417,7 @@ export default function Annotator({ essayId, user }) {
               </>
             ) : (
               <button
-                className="btn btn-gradient"
+                className="btn"
                 style={{ width: '100%' }}
                 disabled={anns.length === 0}
                 onClick={toggleSubmit}

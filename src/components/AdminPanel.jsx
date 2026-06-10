@@ -389,8 +389,13 @@ export default function AdminPanel({ user }) {
   const [tab, setTab] = useState('labels')
   return (
     <>
-      <h1 className="page-title">Admin</h1>
-      <p className="page-sub">Manage labels, essays and annotators.</p>
+      <h1 className="hero-title">
+        Admin <span className="hero-sub">— labels, essays & annotators</span>
+      </h1>
+      <p className="hero-desc">
+        Define the label set (add custom moves, recolor, deactivate), manage the essay corpus, and
+        control user roles.
+      </p>
       <div className="tabs">
         {['labels', 'essays', 'users'].map((t) => (
           <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>

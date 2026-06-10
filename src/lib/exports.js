@@ -188,6 +188,8 @@ export function download(filename, content, mime = 'text/plain') {
 export const FORMATS = [
   {
     key: 'json',
+    glyph: '{}',
+    tint: '#7da6f2',
     name: 'JSON (nested)',
     ext: '.json',
     mime: 'application/json',
@@ -196,6 +198,8 @@ export const FORMATS = [
   },
   {
     key: 'jsonl',
+    glyph: '≡',
+    tint: '#2dd4bf',
     name: 'JSONL spans',
     ext: '.jsonl',
     mime: 'application/jsonl',
@@ -204,6 +208,8 @@ export const FORMATS = [
   },
   {
     key: 'csv',
+    glyph: '▤',
+    tint: '#4ade80',
     name: 'CSV (discourse table)',
     ext: '.csv',
     mime: 'text/csv',
@@ -212,6 +218,8 @@ export const FORMATS = [
   },
   {
     key: 'conll',
+    glyph: 'B-I',
+    tint: '#fcd34d',
     name: 'CoNLL BIO',
     ext: '.conll',
     mime: 'text/plain',
@@ -220,6 +228,8 @@ export const FORMATS = [
   },
   {
     key: 'hf',
+    glyph: 'HF',
+    tint: '#f472b6',
     name: 'HuggingFace tokens',
     ext: '.jsonl',
     mime: 'application/jsonl',
@@ -228,6 +238,8 @@ export const FORMATS = [
   },
   {
     key: 'llm',
+    glyph: '✦',
+    tint: '#c084fc',
     name: 'LLM chat fine-tune',
     ext: '.jsonl',
     mime: 'application/jsonl',

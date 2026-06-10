@@ -47,10 +47,9 @@ export default function AuthScreen() {
 
   return (
     <div className="auth-wrap">
-      <div className="auth-glow" />
-      <div className="auth-glow two" />
       <div className="auth-card">
-        <h1 className="wordmark">Annotator</h1>
+        <span className="logo-badge">Annotator</span>
+        <h1>{mode === 'login' ? 'Sign in' : 'Create account'}</h1>
         <p className="auth-sub">
           Tag the rhetorical moves of TOEFL-style essays — Lead, Position, Claim, Evidence and
           more.

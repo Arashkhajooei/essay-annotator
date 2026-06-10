@@ -15,10 +15,10 @@ export default function SetupScreen({ onRecheck }) {
 
   return (
     <div className="setup-card">
-      <h1 className="wordmark" style={{ fontSize: 30 }}>
-        Annotator
-      </h1>
-      <h2 style={{ margin: '8px 0 4px' }}>One step left: install the database</h2>
+      <span className="logo-badge">Annotator</span>
+      <h2 style={{ margin: '14px 0 4px', fontSize: 18, fontWeight: 500, letterSpacing: '-0.3px' }}>
+        One step left: install the database
+      </h2>
       <p style={{ color: 'var(--text-2)', lineHeight: 1.6 }}>
         The app is connected to your Supabase project, but the tables don&apos;t exist yet. This
         takes about 30 seconds:
