@@ -37,7 +37,16 @@ only admins manage labels and roles (enforced by policies plus a role-change tri
 
 ## Deploy
 
+**Option A — entirely inside Supabase (Edge Function).** `npm run build && node
+scripts/make-single-file.mjs` produces [`supabase/edge-function-app.ts`](supabase/edge-function-app.ts),
+a self-contained function that serves the whole app. In the dashboard: Edge Functions →
+Deploy a new function (name it `app`), paste the file, deploy, then open the function's
+Details and **disable "Enforce JWT verification"**. The app is then live at
+`https://<ref>.supabase.co/functions/v1/app`.
+
+**Option B — GitHub Pages.** One command (needs `gh` authenticated with `repo` scope —
+`gh auth refresh -h github.com -s repo`):
+
 ```bash
-npm run build          # outputs dist/ with relative asset paths
-# push dist/ to the gh-pages branch (GitHub Pages serves it)
+./deploy.sh            # creates the repo, pushes, publishes gh-pages, enables Pages
 ```
