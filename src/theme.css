@@ -1,22 +1,23 @@
 /* ================================================================
-   Instagram dark theme
+   Dark social-app-inspired theme (own palette, not Instagram's)
    ================================================================ */
 :root {
-  --bg: #000000;
-  --surface: #121212;
-  --surface-2: #1a1a1a;
-  --surface-3: #262626;
-  --border: #262626;
-  --border-strong: #363636;
-  --text: #f5f5f5;
-  --text-2: #a8a8a8;
-  --text-3: #737373;
-  --blue: #0095f6;
-  --blue-press: #1877f2;
-  --danger: #ed4956;
-  --success: #58c322;
-  --gradient: linear-gradient(45deg, #feda75 0%, #fa7e1e 25%, #d62976 50%, #962fbf 75%, #4f5bd5 100%);
+  --bg: #050506;
+  --surface: #131316;
+  --surface-2: #1a1a20;
+  --surface-3: #232330;
+  --border: #26262e;
+  --border-strong: #3a3a48;
+  --text: #f2f2f5;
+  --text-2: #a6a6b3;
+  --text-3: #71717f;
+  --blue: #7c5cff;
+  --blue-press: #6a48f0;
+  --danger: #ff5470;
+  --success: #3ddc84;
+  --gradient: linear-gradient(45deg, #ffd166 0%, #ff7e5f 32%, #e84393 64%, #7c5cff 100%);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Syne", var(--font);
   --font-essay: Georgia, "Times New Roman", serif;
   --sidebar-w: 244px;
   --radius: 8px;
@@ -39,7 +40,7 @@ html, body {
 a { color: var(--blue); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-::selection { background: rgba(0, 149, 246, 0.35); }
+::selection { background: rgba(124, 92, 255, 0.35); }
 
 /* ---------- scrollbars ---------- */
 * { scrollbar-width: thin; scrollbar-color: #333 transparent; }
@@ -49,8 +50,9 @@ a:hover { text-decoration: underline; }
 
 /* ---------- wordmark ---------- */
 .wordmark {
-  font-family: "Grand Hotel", cursive;
-  font-weight: 400;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
   background: var(--gradient);
   -webkit-background-clip: text;
   background-clip: text;
@@ -136,7 +138,7 @@ textarea.input { resize: vertical; min-height: 90px; line-height: 1.5; }
   padding: 8px 12px 20px;
   z-index: 50;
 }
-.sidebar .wordmark { font-size: 30px; padding: 24px 12px 28px; display: block; }
+.sidebar .wordmark { font-size: 23px; padding: 24px 12px 28px; display: block; }
 
 .nav-item {
   display: flex;
@@ -471,14 +473,14 @@ textarea.input { resize: vertical; min-height: 90px; line-height: 1.5; }
   width: 720px;
   height: 720px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(214, 41, 118, 0.16) 0%, rgba(150, 47, 191, 0.08) 45%, transparent 70%);
+  background: radial-gradient(circle, rgba(124, 92, 255, 0.18) 0%, rgba(232, 67, 147, 0.08) 45%, transparent 70%);
   top: -240px;
   right: -160px;
   pointer-events: none;
 }
 .auth-glow.two {
   top: auto; right: auto; bottom: -300px; left: -200px;
-  background: radial-gradient(circle, rgba(250, 126, 30, 0.12) 0%, rgba(254, 218, 117, 0.05) 45%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 126, 95, 0.12) 0%, rgba(255, 209, 102, 0.05) 45%, transparent 70%);
 }
 .auth-card {
   width: 360px;
@@ -492,7 +494,7 @@ textarea.input { resize: vertical; min-height: 90px; line-height: 1.5; }
   position: relative;
   z-index: 1;
 }
-.auth-card .wordmark { font-size: 46px; text-align: center; margin: 0 0 26px; }
+.auth-card .wordmark { font-size: 34px; text-align: center; margin: 0 0 26px; }
 .auth-card .input { margin-bottom: 8px; font-size: 13px; background: var(--surface); }
 .auth-sub {
   text-align: center;
@@ -697,6 +699,60 @@ input[type="color"].swatch-input {
   border-radius: 4px;
   padding: 2px 8px;
 }
+
+/* ---------- export scope picker ---------- */
+.scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 860px) { .scope-grid { grid-template-columns: 1fr; } }
+.scope-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+.scope-links { font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.scope-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 4px;
+}
+.scope-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+.scope-item:hover { background: var(--surface-2); }
+.scope-item input[type="checkbox"] { accent-color: var(--blue); width: 15px; height: 15px; flex: none; }
+.scope-item .scope-name {
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scope-item .scope-name em { color: var(--text-3); font-style: normal; }
+.scope-item .scope-count {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-3);
+  font-size: 11.5px;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+.scope-empty { color: var(--text-3); font-size: 13px; padding: 12px; }
 
 .seg { display: inline-flex; background: var(--surface-2); border-radius: 8px; padding: 3px; gap: 2px; margin-bottom: 20px; }
 .seg button {

@@ -15,7 +15,7 @@ export default function SetupScreen({ onRecheck }) {
 
   return (
     <div className="setup-card">
-      <h1 className="wordmark" style={{ fontSize: 40 }}>
+      <h1 className="wordmark" style={{ fontSize: 30 }}>
         Annotator
       </h1>
       <h2 style={{ margin: '8px 0 4px' }}>One step left: install the database</h2>

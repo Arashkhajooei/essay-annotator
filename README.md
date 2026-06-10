@@ -1,6 +1,6 @@
 # Annotator — Essay Rhetorical-Move Tagging
 
-A dark-themed (Instagram-style) web app for annotating TOEFL-like essays with rhetorical
+A dark, social-app-inspired web app for annotating TOEFL-like essays with rhetorical
 moves: **Lead, Position, Claim, Counterclaim, Rebuttal, Evidence, Concluding Statement**.
 
 - **Frontend**: React + Vite, deployed on GitHub Pages
