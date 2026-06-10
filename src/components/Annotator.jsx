@@ -55,6 +55,7 @@ export default function Annotator({ essayId, user }) {
   const [palette, setPalette] = useState(null)
   const [note, setNote] = useState('')
   const wrapRef = useRef(null)
+  const savingRef = useRef(false)
 
   const labelById = useMemo(() => Object.fromEntries(labels.map((l) => [l.id, l])), [labels])
 
@@ -151,6 +152,16 @@ export default function Annotator({ essayId, user }) {
 
   /* ---------- mutations ---------- */
   async function saveAnnotation(labelId) {
+    if (savingRef.current) return // double-click guard
+    savingRef.current = true
+    try {
+      await doSaveAnnotation(labelId)
+    } finally {
+      savingRef.current = false
+    }
+  }
+
+  async function doSaveAnnotation(labelId) {
     if (palette.mode === 'create') {
       const { error } = await supabase.from('annotations').insert({
         essay_id: essayId,
@@ -161,7 +172,11 @@ export default function Annotator({ essayId, user }) {
         text: essay.content.slice(palette.start, palette.end),
         note: note.trim() || null,
       })
-      if (error) return toast(error.message, 'error')
+      if (error)
+        return toast(
+          error.code === '23505' ? 'This exact span is already tagged' : error.message,
+          'error'
+        )
     } else {
       const { error } = await supabase
         .from('annotations')
@@ -229,8 +244,10 @@ export default function Annotator({ essayId, user }) {
       .filter((a) => a.start_offset < para.end && a.end_offset > para.start)
       .sort((x, y) => x.start_offset - y.start_offset)
     for (const a of inPara) {
-      const s = Math.max(a.start_offset, para.start)
+      // clamp to cursor so duplicate/overlapping rows can never duplicate text
+      const s = Math.max(a.start_offset, para.start, cursor)
       const e = Math.min(a.end_offset, para.end)
+      if (e <= cursor) continue
       if (s > cursor) segs.push(<span key={`t${cursor}`}>{essay.content.slice(cursor, s)}</span>)
       const lbl = labelById[a.label_id]
       segs.push(

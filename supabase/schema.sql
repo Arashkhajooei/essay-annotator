@@ -56,6 +56,9 @@ create table if not exists public.annotations (
 );
 
 create index if not exists annotations_essay_user_idx on public.annotations (essay_id, user_id);
+-- exact-duplicate spans (double-click races) are rejected by the database
+create unique index if not exists annotations_unique_span
+  on public.annotations (essay_id, user_id, start_offset, end_offset);
 create index if not exists annotations_user_idx on public.annotations (user_id);
 create index if not exists annotations_label_idx on public.annotations (label_id);
 
