@@ -700,6 +700,22 @@ input[type="color"].swatch-input {
   padding: 2px 8px;
 }
 
+/* ---------- txt upload drop zone ---------- */
+.txt-drop {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.txt-drop:hover { border-color: var(--blue); color: var(--text); background: rgba(124, 92, 255, 0.06); }
+.txt-drop.drag { border-color: var(--blue); background: rgba(124, 92, 255, 0.12); color: var(--text); }
+
 /* ---------- export scope picker ---------- */
 .scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 860px) { .scope-grid { grid-template-columns: 1fr; } }

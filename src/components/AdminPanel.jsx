@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
+import TxtUpload from './TxtUpload.jsx'
 
 /* ---------- Labels tab ---------- */
 function LabelRow({ label, onSaved }) {
@@ -195,6 +196,20 @@ function EssaysTab({ user }) {
     )
   }
 
+  async function bulkImport(files) {
+    const rows = files.map((f) => ({
+      title: f.title,
+      prompt: null,
+      content: f.text,
+      created_by: user.id,
+    }))
+    const { error } = await supabase.from('essays').insert(rows)
+    if (error) return toast(error.message, 'error')
+    toast(`Imported ${rows.length} essays from files`)
+    setEditing(null)
+    load()
+  }
+
   async function save(e) {
     e.preventDefault()
     const payload = {
@@ -270,6 +285,14 @@ function EssaysTab({ user }) {
         <div className="modal-overlay" onClick={() => setEditing(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>{editing === 'new' ? 'Add essay' : 'Edit essay'}</h2>
+            {editing === 'new' && (
+              <TxtUpload
+                onSingle={(f) =>
+                  setForm((cur) => ({ ...cur, title: cur.title || f.title, content: f.text }))
+                }
+                onMany={bulkImport}
+              />
+            )}
             {editing !== 'new' && (
               <div className="auth-info" style={{ fontSize: 12 }}>
                 Careful: changing the text shifts character offsets — existing annotations on this

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
+import TxtUpload from './TxtUpload.jsx'
 
 export default function EssayList({ user, isAdmin }) {
   const [essays, setEssays] = useState(null)
@@ -31,6 +32,21 @@ export default function EssayList({ user, isAdmin }) {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id])
+
+  async function bulkImport(files) {
+    const rows = files.map((f) => ({
+      title: f.title,
+      prompt: null,
+      content: f.text,
+      created_by: user.id,
+    }))
+    const { error } = await supabase.from('essays').insert(rows)
+    if (error) return toast(error.message, 'error')
+    toast(`Imported ${rows.length} essays from files`)
+    setShowAdd(false)
+    setForm({ title: '', prompt: '', content: '' })
+    load()
+  }
 
   async function addEssay(e) {
     e.preventDefault()
@@ -111,6 +127,12 @@ export default function EssayList({ user, isAdmin }) {
         <div className="modal-overlay" onClick={() => setShowAdd(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h2>New essay</h2>
+            <TxtUpload
+              onSingle={(f) =>
+                setForm((cur) => ({ ...cur, title: cur.title || f.title, content: f.text }))
+              }
+              onMany={bulkImport}
+            />
             <form onSubmit={addEssay}>
               <div className="field">
                 <label>Title</label>
