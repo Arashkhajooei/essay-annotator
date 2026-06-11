@@ -1,4 +1,4 @@
-# Annotator — Essay Rhetorical-Move Tagging
+# Rita Annotator — Essay Rhetorical-Move Tagging
 
 A dark, social-app-inspired web app for annotating TOEFL-like essays with rhetorical
 moves: **Lead, Position, Claim, Counterclaim, Rebuttal, Evidence, Concluding Statement**.

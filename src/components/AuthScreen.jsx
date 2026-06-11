@@ -48,7 +48,7 @@ export default function AuthScreen() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
-        <span className="logo-badge">Annotator</span>
+        <span className="logo-badge">Rita Annotator</span>
         <h1>{mode === 'login' ? 'Sign in' : 'Create account'}</h1>
         <p className="auth-sub">
           Tag the rhetorical moves of TOEFL-style essays — Lead, Position, Claim, Evidence and
@@ -118,7 +118,7 @@ export default function AuthScreen() {
           </>
         )}
       </div>
-      <div className="auth-foot">Essay rhetorical-move annotation · powered by Supabase</div>
+      <div className="auth-foot">Rita Annotator · essay rhetorical-move annotation</div>
     </div>
   )
 }

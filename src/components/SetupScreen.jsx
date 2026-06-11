@@ -15,7 +15,7 @@ export default function SetupScreen({ onRecheck }) {
 
   return (
     <div className="setup-card">
-      <span className="logo-badge">Annotator</span>
+      <span className="logo-badge">Rita Annotator</span>
       <h2 style={{ margin: '14px 0 4px', fontSize: 18, fontWeight: 500, letterSpacing: '-0.3px' }}>
         One step left: install the database
       </h2>
