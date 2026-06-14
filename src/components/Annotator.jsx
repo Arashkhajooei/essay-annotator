@@ -49,6 +49,7 @@ export default function Annotator({ essayId, user }) {
   const [labels, setLabels] = useState([])
   const [anns, setAnns] = useState([])
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [score, setScore] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [hoveredId, setHoveredId] = useState(null)
   // palette: {mode:'create', start, end, x, y} | {mode:'edit', ann, x, y}
@@ -60,27 +61,34 @@ export default function Annotator({ essayId, user }) {
   const labelById = useMemo(() => Object.fromEntries(labels.map((l) => [l.id, l])), [labels])
 
   const load = useCallback(async () => {
-    const [{ data: e, error: ee }, { data: ls }, { data: as }, { data: sub }] = await Promise.all([
-      supabase.from('essays').select('*').eq('id', essayId).maybeSingle(),
-      supabase
-        .from('labels')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order')
-        .order('name'),
-      supabase
-        .from('annotations')
-        .select('*')
-        .eq('essay_id', essayId)
-        .eq('user_id', user.id)
-        .order('start_offset'),
-      supabase
-        .from('essay_submissions')
-        .select('essay_id')
-        .eq('essay_id', essayId)
-        .eq('user_id', user.id)
-        .maybeSingle(),
-    ])
+    const [{ data: e, error: ee }, { data: ls }, { data: as }, { data: sub }, { data: sc }] =
+      await Promise.all([
+        supabase.from('essays').select('*').eq('id', essayId).maybeSingle(),
+        supabase
+          .from('labels')
+          .select('*')
+          .eq('is_active', true)
+          .order('sort_order')
+          .order('name'),
+        supabase
+          .from('annotations')
+          .select('*')
+          .eq('essay_id', essayId)
+          .eq('user_id', user.id)
+          .order('start_offset'),
+        supabase
+          .from('essay_submissions')
+          .select('essay_id')
+          .eq('essay_id', essayId)
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('essay_scores')
+          .select('score')
+          .eq('essay_id', essayId)
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      ])
     if (ee || !e) {
       setLoadError(ee?.message || 'Essay not found')
       return
@@ -89,6 +97,7 @@ export default function Annotator({ essayId, user }) {
     setLabels(ls || [])
     setAnns(as || [])
     setIsSubmitted(!!sub)
+    setScore(sc?.score ?? null)
   }, [essayId, user.id])
 
   useEffect(() => {
@@ -212,6 +221,18 @@ export default function Annotator({ essayId, user }) {
       toast('✓ Annotation submitted')
     }
     load()
+  }
+
+  async function saveScore(value) {
+    setScore(value)
+    if (value === null) {
+      await supabase.from('essay_scores').delete().eq('essay_id', essayId).eq('user_id', user.id)
+      return
+    }
+    const { error } = await supabase
+      .from('essay_scores')
+      .upsert({ essay_id: essayId, user_id: user.id, score: value, updated_at: new Date().toISOString() })
+    if (error) toast(error.message, 'error')
   }
 
   /* keyboard shortcuts: 1..9 picks a label while palette is open, Esc closes */
@@ -423,24 +444,46 @@ export default function Annotator({ essayId, user }) {
           </div>
 
           <div className="panel-card">
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>Holistic score (1–6)</label>
+              <select
+                className="input"
+                value={score ?? ''}
+                onChange={(ev) => saveScore(ev.target.value ? parseInt(ev.target.value, 10) : null)}
+              >
+                <option value="">— not scored —</option>
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
             {isSubmitted ? (
               <>
                 <div style={{ color: 'var(--success)', fontWeight: 600, marginBottom: 10 }}>
-                  ✓ Submitted — thank you!
+                  ✓ Submitted{score ? ` · score ${score}` : ''} — thank you!
                 </div>
                 <button className="btn btn-dark" style={{ width: '100%' }} onClick={toggleSubmit}>
                   Reopen for editing
                 </button>
               </>
             ) : (
-              <button
-                className="btn"
-                style={{ width: '100%' }}
-                disabled={anns.length === 0}
-                onClick={toggleSubmit}
-              >
-                Submit annotation
-              </button>
+              <>
+                <button
+                  className="btn"
+                  style={{ width: '100%' }}
+                  disabled={anns.length === 0 || !score}
+                  onClick={toggleSubmit}
+                >
+                  Submit annotation
+                </button>
+                {anns.length > 0 && !score && (
+                  <div style={{ color: 'var(--text-3)', fontSize: 11, marginTop: 6 }}>
+                    Pick a 1–6 score above to submit.
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

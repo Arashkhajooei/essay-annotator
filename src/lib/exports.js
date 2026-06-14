@@ -7,18 +7,24 @@ export async function fetchExportData(scope, userId) {
     .select('*, labels(name, color), profiles(email, display_name)')
     .order('start_offset')
   if (scope === 'mine') q = q.eq('user_id', userId)
-  const [{ data: anns, error: e1 }, { data: essays, error: e2 }] = await Promise.all([
-    q,
-    supabase.from('essays').select('id, title, prompt, content').order('created_at'),
-  ])
+  let sq = supabase.from('essay_scores').select('essay_id, user_id, score')
+  if (scope === 'mine') sq = sq.eq('user_id', userId)
+  const [{ data: anns, error: e1 }, { data: essays, error: e2 }, { data: scores, error: e3 }] =
+    await Promise.all([
+      q,
+      supabase.from('essays').select('id, title, prompt, content').order('created_at'),
+      sq,
+    ])
   if (e1) throw e1
   if (e2) throw e2
-  return { anns: anns || [], essays: essays || [] }
+  if (e3) throw e3
+  return { anns: anns || [], essays: essays || [], scores: scores || [] }
 }
 
 /* group annotations into (essay × annotator) documents */
-export function buildDocs({ anns, essays }) {
+export function buildDocs({ anns, essays, scores = [] }) {
   const essayById = Object.fromEntries(essays.map((e) => [e.id, e]))
+  const scoreByKey = Object.fromEntries((scores || []).map((s) => [`${s.essay_id}::${s.user_id}`, s.score]))
   const groups = new Map()
   for (const a of anns) {
     const essay = essayById[a.essay_id]
@@ -32,6 +38,7 @@ export function buildDocs({ anns, essays }) {
         text: essay.content,
         annotator: a.profiles?.display_name || a.profiles?.email || a.user_id,
         annotator_id: a.user_id,
+        score: scoreByKey[key] ?? null,
         spans: [],
       })
     }
@@ -85,6 +92,7 @@ export function toJSON(docs) {
     }
     byEssay.get(d.essay_id).annotations.push({
       annotator: d.annotator,
+      holistic_score: d.score,
       spans: d.spans,
     })
   }
@@ -98,6 +106,7 @@ export function toJSONL(docs) {
       JSON.stringify({
         id: d.essay_id,
         annotator: d.annotator,
+        holistic_score: d.score,
         text: d.text,
         label: d.spans.map((s) => [s.start, s.end, s.label]),
       })
@@ -109,12 +118,12 @@ export function toCSV(docs) {
   // Kaggle Feedback Prize style discourse table
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
   const rows = [
-    'essay_id,essay_title,annotator,discourse_type,discourse_start,discourse_end,discourse_text',
+    'essay_id,essay_title,annotator,holistic_score,discourse_type,discourse_start,discourse_end,discourse_text',
   ]
   for (const d of docs)
     for (const s of d.spans)
       rows.push(
-        [esc(d.essay_id), esc(d.title), esc(d.annotator), esc(s.label), s.start, s.end, esc(s.text)].join(
+        [esc(d.essay_id), esc(d.title), esc(d.annotator), esc(d.score ?? ''), esc(s.label), s.start, s.end, esc(s.text)].join(
           ','
         )
       )
@@ -127,6 +136,7 @@ export function toCoNLL(docs) {
   for (const d of docs) {
     out.push(`# essay_id = ${d.essay_id}`)
     out.push(`# annotator = ${d.annotator}`)
+    out.push(`# holistic_score = ${d.score ?? 'NA'}`)
     const tokens = tokenize(d.text)
     const tags = bioTags(tokens, d.spans)
     tokens.forEach((tok, i) => out.push(`${tok.t}\t${tags[i]}`))
@@ -143,6 +153,7 @@ export function toHuggingFace(docs) {
       return JSON.stringify({
         id: d.essay_id,
         annotator: d.annotator,
+        holistic_score: d.score,
         tokens: tokens.map((t) => t.t),
         tags: bioTags(tokens, d.spans),
       })
@@ -167,6 +178,7 @@ export function toPromptCompletion(docs) {
             content: JSON.stringify(d.spans.map((s) => ({ label: s.label, text: s.text }))),
           },
         ],
+        metadata: { holistic_score: d.score },
       })
     )
     .join('\n')
