@@ -394,7 +394,7 @@ export default function Annotator({ essayId, user }) {
             </div>
           </div>
 
-          <div className="panel-card" style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="panel-card">
             <h3>
               Your annotations ({anns.length})
             </h3>

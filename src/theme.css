@@ -417,6 +417,7 @@ textarea.input { resize: vertical; min-height: 90px; line-height: 1.6; }
   flex-direction: column;
   gap: 14px;
   max-height: calc(100vh - 88px);
+  overflow-y: auto;
 }
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -433,7 +434,7 @@ textarea.input { resize: vertical; min-height: 90px; line-height: 1.6; }
 }
 .legend-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
 
-.ann-list { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.ann-list { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; max-height: 42vh; }
 .ann-item {
   --c: #7da6f2;
   border-left: 3px solid var(--c);
