@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
 import TxtUpload from './TxtUpload.jsx'
+import ComparisonTab from './ComparisonTab.jsx'
 
 /* ---------- Labels tab ---------- */
 function LabelRow({ label, onSaved }) {
@@ -393,11 +394,11 @@ export default function AdminPanel({ user }) {
         Admin <span className="hero-sub">— labels, essays & annotators</span>
       </h1>
       <p className="hero-desc">
-        Define the label set (add custom moves, recolor, deactivate), manage the essay corpus, and
-        control user roles.
+        Define the label set (add custom moves, recolor, deactivate), manage the essay corpus,
+        control user roles, and compare how annotators agree on each essay.
       </p>
       <div className="tabs">
-        {['labels', 'essays', 'users'].map((t) => (
+        {['labels', 'essays', 'users', 'compare'].map((t) => (
           <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
             {t[0].toUpperCase() + t.slice(1)}
           </button>
@@ -406,6 +407,7 @@ export default function AdminPanel({ user }) {
       {tab === 'labels' && <LabelsTab />}
       {tab === 'essays' && <EssaysTab user={user} />}
       {tab === 'users' && <UsersTab user={user} />}
+      {tab === 'compare' && <ComparisonTab />}
     </>
   )
 }
