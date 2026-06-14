@@ -44,12 +44,15 @@ function findPara(node) {
   return el ? el.closest('p[data-pstart]') : null
 }
 
+const boolToStr = (b) => (b === true ? 'yes' : b === false ? 'no' : '')
+const strToBool = (s) => (s === 'yes' ? true : s === 'no' ? false : null)
+
 export default function Annotator({ essayId, user }) {
   const [essay, setEssay] = useState(null)
   const [labels, setLabels] = useState([])
   const [anns, setAnns] = useState([])
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const [score, setScore] = useState(null)
+  const [rubric, setRubric] = useState({})
   const [loadError, setLoadError] = useState(null)
   const [hoveredId, setHoveredId] = useState(null)
   // palette: {mode:'create', start, end, x, y} | {mode:'edit', ann, x, y}
@@ -84,7 +87,7 @@ export default function Annotator({ essayId, user }) {
           .maybeSingle(),
         supabase
           .from('essay_scores')
-          .select('score')
+          .select('score, prompt_adherence, task_validity, coherence_local, coherence_global')
           .eq('essay_id', essayId)
           .eq('user_id', user.id)
           .maybeSingle(),
@@ -97,7 +100,7 @@ export default function Annotator({ essayId, user }) {
     setLabels(ls || [])
     setAnns(as || [])
     setIsSubmitted(!!sub)
-    setScore(sc?.score ?? null)
+    setRubric(sc || {})
   }, [essayId, user.id])
 
   useEffect(() => {
@@ -223,15 +226,11 @@ export default function Annotator({ essayId, user }) {
     load()
   }
 
-  async function saveScore(value) {
-    setScore(value)
-    if (value === null) {
-      await supabase.from('essay_scores').delete().eq('essay_id', essayId).eq('user_id', user.id)
-      return
-    }
+  async function saveRubric(patch) {
+    setRubric((cur) => ({ ...cur, ...patch }))
     const { error } = await supabase
       .from('essay_scores')
-      .upsert({ essay_id: essayId, user_id: user.id, score: value, updated_at: new Date().toISOString() })
+      .upsert({ essay_id: essayId, user_id: user.id, ...patch, updated_at: new Date().toISOString() })
     if (error) toast(error.message, 'error')
   }
 
@@ -308,6 +307,7 @@ export default function Annotator({ essayId, user }) {
   const sortedAnns = [...anns].sort((a, b) => a.start_offset - b.start_offset)
   const taggedChars = anns.reduce((s, a) => s + (a.end_offset - a.start_offset), 0)
   const coverage = Math.min(100, Math.round((taggedChars / Math.max(essay.content.length, 1)) * 100))
+  const canSubmit = !!(rubric.score && rubric.prompt_adherence && rubric.task_validity)
 
   return (
     <>
@@ -444,25 +444,74 @@ export default function Annotator({ essayId, user }) {
           </div>
 
           <div className="panel-card">
-            <div className="field" style={{ marginBottom: 12 }}>
-              <label>Holistic score (1–6)</label>
+            <h3>Essay rubric</h3>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Score (1–6)</label>
               <select
                 className="input"
-                value={score ?? ''}
-                onChange={(ev) => saveScore(ev.target.value ? parseInt(ev.target.value, 10) : null)}
+                value={rubric.score ?? ''}
+                onChange={(ev) => saveRubric({ score: ev.target.value ? parseInt(ev.target.value, 10) : null })}
               >
                 <option value="">— not scored —</option>
                 {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
+                  <option key={n} value={n}>{n}</option>
                 ))}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Prompt adherence</label>
+              <select
+                className="input"
+                value={rubric.prompt_adherence ?? ''}
+                onChange={(ev) => saveRubric({ prompt_adherence: ev.target.value || null })}
+              >
+                <option value="">—</option>
+                {['Full', 'Partial', 'None'].map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Task validity (content)</label>
+              <select
+                className="input"
+                value={rubric.task_validity ?? ''}
+                onChange={(ev) => saveRubric({ task_validity: ev.target.value || null })}
+              >
+                <option value="">—</option>
+                {['On task', 'Off task'].map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Coherence — local (sentence-to-sentence)</label>
+              <select
+                className="input"
+                value={boolToStr(rubric.coherence_local)}
+                onChange={(ev) => saveRubric({ coherence_local: strToBool(ev.target.value) })}
+              >
+                <option value="">—</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>Coherence — global (alignment with thesis)</label>
+              <select
+                className="input"
+                value={boolToStr(rubric.coherence_global)}
+                onChange={(ev) => saveRubric({ coherence_global: strToBool(ev.target.value) })}
+              >
+                <option value="">—</option>
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
               </select>
             </div>
             {isSubmitted ? (
               <>
                 <div style={{ color: 'var(--success)', fontWeight: 600, marginBottom: 10 }}>
-                  ✓ Submitted{score ? ` · score ${score}` : ''} — thank you!
+                  ✓ Submitted{rubric.score ? ` · score ${rubric.score}` : ''} — thank you!
                 </div>
                 <button className="btn btn-dark" style={{ width: '100%' }} onClick={toggleSubmit}>
                   Reopen for editing
@@ -473,14 +522,14 @@ export default function Annotator({ essayId, user }) {
                 <button
                   className="btn"
                   style={{ width: '100%' }}
-                  disabled={anns.length === 0 || !score}
+                  disabled={anns.length === 0 || !canSubmit}
                   onClick={toggleSubmit}
                 >
                   Submit annotation
                 </button>
-                {anns.length > 0 && !score && (
+                {anns.length > 0 && !canSubmit && (
                   <div style={{ color: 'var(--text-3)', fontSize: 11, marginTop: 6 }}>
-                    Pick a 1–6 score above to submit.
+                    Required before submit: score, prompt adherence, task validity.
                   </div>
                 )}
               </>

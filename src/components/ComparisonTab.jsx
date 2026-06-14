@@ -6,6 +6,7 @@ import { computeComparison, getParagraphs } from '../lib/agreement.js'
 const RATER_COLORS = ['#7da6f2', '#f472b6', '#4ade80', '#fcd34d', '#c084fc', '#2dd4bf', '#fb923c', '#60a5fa']
 const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`)
 const kap = (x) => (x == null ? '—' : x.toFixed(3))
+const boolLabel = (b) => (b === true ? 'Yes' : b === false ? 'No' : '—')
 
 export default function ComparisonTab() {
   const [essays, setEssays] = useState(null)
@@ -38,14 +39,17 @@ export default function ComparisonTab() {
           .eq('essay_id', id)
           .order('start_offset'),
         supabase.from('labels').select('name, color, sort_order').order('sort_order'),
-        supabase.from('essay_scores').select('user_id, score').eq('essay_id', id),
+        supabase
+          .from('essay_scores')
+          .select('user_id, score, prompt_adherence, task_validity, coherence_local, coherence_global')
+          .eq('essay_id', id),
       ])
     setLoading(false)
     if (e1 || e2 || e3 || e4) return toast((e1 || e2 || e3 || e4).message, 'error')
 
     const labelColor = Object.fromEntries((labels || []).map((l) => [l.name, l.color]))
     const labelOrder = (labels || []).map((l) => l.name)
-    const scoreByRater = Object.fromEntries((scores || []).map((s) => [s.user_id, s.score]))
+    const rubricByRater = Object.fromEntries((scores || []).map((s) => [s.user_id, s]))
 
     const raterMap = new Map()
     const spansByRater = {}
@@ -62,7 +66,7 @@ export default function ComparisonTab() {
       name,
       color: RATER_COLORS[i % RATER_COLORS.length],
     }))
-    setData({ essay, allRaters, spansByRater, labelColor, labelOrder, scoreByRater })
+    setData({ essay, allRaters, spansByRater, labelColor, labelOrder, rubricByRater })
   }
 
   if (!essays) return <div className="spinner" />
@@ -89,7 +93,7 @@ export default function ComparisonTab() {
 
 const raterName = (raters, id) => raters.find((r) => r.id === id)?.name || '?'
 
-function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder, scoreByRater }) {
+function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder, rubricByRater }) {
   const [selectedIds, setSelectedIds] = useState(() => allRaters.map((r) => r.id))
   const [showRaters, setShowRaters] = useState(false)
   const paras = useMemo(() => getParagraphs(essay.content), [essay])
@@ -119,7 +123,7 @@ function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder
   }
 
   // holistic-score readout over the selected raters
-  const scoreVals = raters.map((r) => scoreByRater[r.id]).filter((s) => s != null)
+  const scoreVals = raters.map((r) => rubricByRater[r.id]?.score).filter((s) => s != null)
   const scoreSpread = scoreVals.length >= 2 ? Math.max(...scoreVals) - Math.min(...scoreVals) : null
 
   return (
@@ -136,7 +140,7 @@ function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder
         <div className="rater-chips">
           {allRaters.map((r) => {
             const on = selectedIds.includes(r.id)
-            const sc = scoreByRater[r.id]
+            const sc = rubricByRater[r.id]?.score
             return (
               <button
                 key={r.id}
@@ -171,19 +175,43 @@ function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder
 
           {/* holistic scores */}
           <div className="panel-card" style={{ marginBottom: 18 }}>
-            <h3>Holistic scores (1–6)</h3>
-            {scoreVals.length === 0 ? (
-              <div className="cell-dim" style={{ fontSize: 13 }}>No scores submitted yet for the selected raters.</div>
-            ) : (
-              <div className="score-row">
-                {raters.map((r) => (
-                  <span key={r.id} className="score-pill" style={{ '--c': r.color }}>
-                    <span className="dot" />
-                    {r.name}: <b>{scoreByRater[r.id] ?? '—'}</b>
-                  </span>
-                ))}
-                <span className={`chip ${scoreSpread === 0 ? 'green' : scoreSpread <= 1 ? 'amber' : 'red'}`} style={{ marginLeft: 6 }}>
-                  {scoreSpread == null ? 'need 2 scores' : scoreSpread === 0 ? 'exact match' : `range ${scoreSpread}`}
+            <h3>Rubric scores</h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Rater</th>
+                  <th>Score</th>
+                  <th>Prompt adherence</th>
+                  <th>Task validity</th>
+                  <th>Coherence · local</th>
+                  <th>Coherence · global</th>
+                </tr>
+              </thead>
+              <tbody>
+                {raters.map((r) => {
+                  const rb = rubricByRater[r.id] || {}
+                  return (
+                    <tr key={r.id}>
+                      <td>
+                        <span className="legend-chip" style={{ '--c': r.color }}>
+                          <span className="dot" />
+                          {r.name}
+                        </span>
+                      </td>
+                      <td className="cell-dim">{rb.score ?? '—'}</td>
+                      <td className="cell-dim">{rb.prompt_adherence ?? '—'}</td>
+                      <td className="cell-dim">{rb.task_validity ?? '—'}</td>
+                      <td className="cell-dim">{boolLabel(rb.coherence_local)}</td>
+                      <td className="cell-dim">{boolLabel(rb.coherence_global)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            {scoreVals.length >= 2 && (
+              <div style={{ marginTop: 8 }}>
+                <span className={`chip ${scoreSpread === 0 ? 'green' : scoreSpread <= 1 ? 'amber' : 'red'}`}>
+                  score {scoreSpread === 0 ? 'exact match' : `range ${scoreSpread}`}
                 </span>
               </div>
             )}
@@ -213,7 +241,7 @@ function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder
                     <div className="cmp-rater-head">
                       <span className="dot" style={{ background: r.color }} />
                       {r.name}
-                      {scoreByRater[r.id] != null && <span className="cell-dim"> · score {scoreByRater[r.id]}</span>}
+                      {rubricByRater[r.id]?.score != null && <span className="cell-dim"> · score {rubricByRater[r.id].score}</span>}
                     </div>
                     <div className="essay-text cmp-essay">
                       {paras.map((p, i) => (

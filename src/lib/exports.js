@@ -7,7 +7,9 @@ export async function fetchExportData(scope, userId) {
     .select('*, labels(name, color), profiles(email, display_name)')
     .order('start_offset')
   if (scope === 'mine') q = q.eq('user_id', userId)
-  let sq = supabase.from('essay_scores').select('essay_id, user_id, score')
+  let sq = supabase
+    .from('essay_scores')
+    .select('essay_id, user_id, score, prompt_adherence, task_validity, coherence_local, coherence_global')
   if (scope === 'mine') sq = sq.eq('user_id', userId)
   const [{ data: anns, error: e1 }, { data: essays, error: e2 }, { data: scores, error: e3 }] =
     await Promise.all([
@@ -24,7 +26,7 @@ export async function fetchExportData(scope, userId) {
 /* group annotations into (essay × annotator) documents */
 export function buildDocs({ anns, essays, scores = [] }) {
   const essayById = Object.fromEntries(essays.map((e) => [e.id, e]))
-  const scoreByKey = Object.fromEntries((scores || []).map((s) => [`${s.essay_id}::${s.user_id}`, s.score]))
+  const rubricByKey = Object.fromEntries((scores || []).map((s) => [`${s.essay_id}::${s.user_id}`, s]))
   const groups = new Map()
   for (const a of anns) {
     const essay = essayById[a.essay_id]
@@ -38,7 +40,11 @@ export function buildDocs({ anns, essays, scores = [] }) {
         text: essay.content,
         annotator: a.profiles?.display_name || a.profiles?.email || a.user_id,
         annotator_id: a.user_id,
-        score: scoreByKey[key] ?? null,
+        score: rubricByKey[key]?.score ?? null,
+        prompt_adherence: rubricByKey[key]?.prompt_adherence ?? null,
+        task_validity: rubricByKey[key]?.task_validity ?? null,
+        coherence_local: rubricByKey[key]?.coherence_local ?? null,
+        coherence_global: rubricByKey[key]?.coherence_global ?? null,
         spans: [],
       })
     }
@@ -77,6 +83,14 @@ function bioTags(tokens, spans) {
 }
 
 /* ---------- formats ---------- */
+const rubricOf = (d) => ({
+  holistic_score: d.score,
+  prompt_adherence: d.prompt_adherence,
+  task_validity: d.task_validity,
+  coherence_local: d.coherence_local,
+  coherence_global: d.coherence_global,
+})
+
 export function toJSON(docs) {
   // nested, human-readable: one object per essay with all annotators
   const byEssay = new Map()
@@ -92,7 +106,7 @@ export function toJSON(docs) {
     }
     byEssay.get(d.essay_id).annotations.push({
       annotator: d.annotator,
-      holistic_score: d.score,
+      ...rubricOf(d),
       spans: d.spans,
     })
   }
@@ -106,7 +120,7 @@ export function toJSONL(docs) {
       JSON.stringify({
         id: d.essay_id,
         annotator: d.annotator,
-        holistic_score: d.score,
+        ...rubricOf(d),
         text: d.text,
         label: d.spans.map((s) => [s.start, s.end, s.label]),
       })
@@ -117,15 +131,19 @@ export function toJSONL(docs) {
 export function toCSV(docs) {
   // Kaggle Feedback Prize style discourse table
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const yn = (b) => (b == null ? '' : b ? 'Yes' : 'No')
   const rows = [
-    'essay_id,essay_title,annotator,holistic_score,discourse_type,discourse_start,discourse_end,discourse_text',
+    'essay_id,essay_title,annotator,holistic_score,prompt_adherence,task_validity,coherence_local,coherence_global,discourse_type,discourse_start,discourse_end,discourse_text',
   ]
   for (const d of docs)
     for (const s of d.spans)
       rows.push(
-        [esc(d.essay_id), esc(d.title), esc(d.annotator), esc(d.score ?? ''), esc(s.label), s.start, s.end, esc(s.text)].join(
-          ','
-        )
+        [
+          esc(d.essay_id), esc(d.title), esc(d.annotator),
+          esc(d.score ?? ''), esc(d.prompt_adherence ?? ''), esc(d.task_validity ?? ''),
+          esc(yn(d.coherence_local)), esc(yn(d.coherence_global)),
+          esc(s.label), s.start, s.end, esc(s.text),
+        ].join(',')
       )
   return rows.join('\n')
 }
@@ -137,6 +155,10 @@ export function toCoNLL(docs) {
     out.push(`# essay_id = ${d.essay_id}`)
     out.push(`# annotator = ${d.annotator}`)
     out.push(`# holistic_score = ${d.score ?? 'NA'}`)
+    out.push(`# prompt_adherence = ${d.prompt_adherence ?? 'NA'}`)
+    out.push(`# task_validity = ${d.task_validity ?? 'NA'}`)
+    out.push(`# coherence_local = ${d.coherence_local == null ? 'NA' : d.coherence_local ? 'Yes' : 'No'}`)
+    out.push(`# coherence_global = ${d.coherence_global == null ? 'NA' : d.coherence_global ? 'Yes' : 'No'}`)
     const tokens = tokenize(d.text)
     const tags = bioTags(tokens, d.spans)
     tokens.forEach((tok, i) => out.push(`${tok.t}\t${tags[i]}`))
@@ -153,7 +175,7 @@ export function toHuggingFace(docs) {
       return JSON.stringify({
         id: d.essay_id,
         annotator: d.annotator,
-        holistic_score: d.score,
+        ...rubricOf(d),
         tokens: tokens.map((t) => t.t),
         tags: bioTags(tokens, d.spans),
       })
@@ -178,7 +200,7 @@ export function toPromptCompletion(docs) {
             content: JSON.stringify(d.spans.map((s) => ({ label: s.label, text: s.text }))),
           },
         ],
-        metadata: { holistic_score: d.score },
+        metadata: rubricOf(d),
       })
     )
     .join('\n')
