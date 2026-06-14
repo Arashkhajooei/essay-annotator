@@ -90,7 +90,7 @@ export default function ExportPanel({ user, isAdmin }) {
         const ids = [...new Set(filteredAnns.map((a) => a.user_id))]
         for (const id of ids) {
           const subset = filteredAnns.filter((a) => a.user_id === id)
-          const docs = buildDocs({ anns: subset, essays: data.essays })
+          const docs = buildDocs({ anns: subset, essays: data.essays, scores: data.scores })
           const who = slug(annName(subset[0]))
           download(`annotations-${who}-${stamp}-${fmt.key}${fmt.ext}`, fmt.build(docs), fmt.mime)
           // small gap so the browser doesn't swallow parallel downloads
@@ -98,7 +98,7 @@ export default function ExportPanel({ user, isAdmin }) {
         }
         toast(`Exported ${ids.length} file${ids.length === 1 ? '' : 's'} (one per annotator)`)
       } else {
-        const docs = buildDocs({ anns: filteredAnns, essays: data.essays })
+        const docs = buildDocs({ anns: filteredAnns, essays: data.essays, scores: data.scores })
         download(`annotations-${stamp}-${fmt.key}${fmt.ext}`, fmt.build(docs), fmt.mime)
         toast(`Exported ${docs.length} document${docs.length === 1 ? '' : 's'} as ${fmt.name}`)
       }

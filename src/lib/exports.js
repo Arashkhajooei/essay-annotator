@@ -133,7 +133,7 @@ export function toCSV(docs) {
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
   const yn = (b) => (b == null ? '' : b ? 'Yes' : 'No')
   const rows = [
-    'essay_id,essay_title,annotator,holistic_score,prompt_adherence,task_validity,coherence_local,coherence_global,discourse_type,discourse_start,discourse_end,discourse_text',
+    'essay_id,essay_title,annotator,holistic_score,prompt_adherence,task_validity,coherence_local,coherence_global,discourse_type,discourse_start,discourse_end,discourse_text,discourse_note',
   ]
   for (const d of docs)
     for (const s of d.spans)
@@ -142,7 +142,7 @@ export function toCSV(docs) {
           esc(d.essay_id), esc(d.title), esc(d.annotator),
           esc(d.score ?? ''), esc(d.prompt_adherence ?? ''), esc(d.task_validity ?? ''),
           esc(yn(d.coherence_local)), esc(yn(d.coherence_global)),
-          esc(s.label), s.start, s.end, esc(s.text),
+          esc(s.label), s.start, s.end, esc(s.text), esc(s.note ?? ''),
         ].join(',')
       )
   return rows.join('\n')
