@@ -111,6 +111,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
 
   /* ---------- selection handling ---------- */
   function handleMouseUp() {
+    if (isSubmitted) return
     const sel = window.getSelection()
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return
     const range = sel.getRangeAt(0)
@@ -150,6 +151,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
   }
 
   function tagParagraph(para, ev) {
+    if (isSubmitted) return
     const text = essay.content
     let a = para.start
     let b = para.end
@@ -207,6 +209,16 @@ export default function Annotator({ essayId, user, isAdmin }) {
     load()
   }
 
+  async function clearAllAnnotations() {
+    if (anns.length === 0 || isSubmitted) return
+    if (!window.confirm(`Delete ALL ${anns.length} of your annotations on this essay? This cannot be undone.`)) return
+    const { error } = await supabase.from('annotations').delete().eq('essay_id', essayId).eq('user_id', user.id)
+    if (error) return toast(error.message, 'error')
+    setPalette(null)
+    toast('Cleared all your annotations')
+    load()
+  }
+
   async function toggleSubmit() {
     if (isSubmitted) {
       const { error } = await supabase
@@ -217,6 +229,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
       if (error) return toast(error.message, 'error')
       toast('Reopened for editing')
     } else {
+      if (!window.confirm("Submit your annotation? Once submitted you can't edit or clear it until you reopen.")) return
       const { error } = await supabase
         .from('essay_submissions')
         .insert({ essay_id: essayId, user_id: user.id })
@@ -281,6 +294,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
           onMouseLeave={() => setHoveredId(null)}
           onClick={(ev) => {
             ev.stopPropagation()
+            if (isSubmitted) return
             openPalette({ mode: 'edit', ann: a }, ev.currentTarget.getBoundingClientRect())
           }}
         >
@@ -293,12 +307,14 @@ export default function Annotator({ essayId, user, isAdmin }) {
       segs.push(<span key={`t${cursor}`}>{essay.content.slice(cursor, para.end)}</span>)
     return (
       <p key={i} data-pstart={para.start}>
-        <button
-          className="para-tag"
-          title="Tag this whole paragraph"
-          aria-label="Tag this whole paragraph"
-          onClick={(ev) => tagParagraph(para, ev)}
-        />
+        {!isSubmitted && (
+          <button
+            className="para-tag"
+            title="Tag this whole paragraph"
+            aria-label="Tag this whole paragraph"
+            onClick={(ev) => tagParagraph(para, ev)}
+          />
+        )}
         {segs}
       </p>
     )
@@ -430,16 +446,18 @@ export default function Annotator({ essayId, user, isAdmin }) {
                   >
                     <div className="ann-label">
                       {lbl?.name || '?'}
-                      <button
-                        className="ann-x"
-                        title="Delete annotation"
-                        onClick={(ev) => {
-                          ev.stopPropagation()
-                          deleteAnnotation(a.id)
-                        }}
-                      >
-                        ✕
-                      </button>
+                      {!isSubmitted && (
+                        <button
+                          className="ann-x"
+                          title="Delete annotation"
+                          onClick={(ev) => {
+                            ev.stopPropagation()
+                            deleteAnnotation(a.id)
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
                     </div>
                     <div className="ann-text">{a.text}</div>
                     {a.note && (
@@ -451,6 +469,15 @@ export default function Annotator({ essayId, user, isAdmin }) {
                 )
               })}
             </div>
+            {!isSubmitted && anns.length > 0 && (
+              <button
+                className="btn btn-danger"
+                style={{ width: '100%', marginTop: 10, fontSize: 12 }}
+                onClick={clearAllAnnotations}
+              >
+                Clear all my annotations
+              </button>
+            )}
           </div>
 
           <div className="panel-card">
@@ -459,6 +486,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
               <label>Score (1–6)</label>
               <select
                 className="input"
+                disabled={isSubmitted}
                 value={rubric.score ?? ''}
                 onChange={(ev) => saveRubric({ score: ev.target.value ? parseInt(ev.target.value, 10) : null })}
               >
@@ -472,6 +500,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
               <label>Prompt adherence</label>
               <select
                 className="input"
+                disabled={isSubmitted}
                 value={rubric.prompt_adherence ?? ''}
                 onChange={(ev) => saveRubric({ prompt_adherence: ev.target.value || null })}
               >
@@ -485,6 +514,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
               <label>Task validity (content)</label>
               <select
                 className="input"
+                disabled={isSubmitted}
                 value={rubric.task_validity ?? ''}
                 onChange={(ev) => saveRubric({ task_validity: ev.target.value || null })}
               >
@@ -498,6 +528,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
               <label>Coherence — local (sentence-to-sentence)</label>
               <select
                 className="input"
+                disabled={isSubmitted}
                 value={boolToStr(rubric.coherence_local)}
                 onChange={(ev) => saveRubric({ coherence_local: strToBool(ev.target.value) })}
               >
@@ -510,6 +541,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
               <label>Coherence — global (alignment with thesis)</label>
               <select
                 className="input"
+                disabled={isSubmitted}
                 value={boolToStr(rubric.coherence_global)}
                 onChange={(ev) => saveRubric({ coherence_global: strToBool(ev.target.value) })}
               >
@@ -520,8 +552,11 @@ export default function Annotator({ essayId, user, isAdmin }) {
             </div>
             {isSubmitted ? (
               <>
-                <div style={{ color: 'var(--success)', fontWeight: 600, marginBottom: 10 }}>
+                <div style={{ color: 'var(--success)', fontWeight: 600, marginBottom: 6 }}>
                   ✓ Submitted{rubric.score ? ` · score ${rubric.score}` : ''} — thank you!
+                </div>
+                <div style={{ color: 'var(--text-3)', fontSize: 11, marginBottom: 10 }}>
+                  🔒 Locked — annotations and scores can&apos;t be changed. Reopen to edit.
                 </div>
                 <button className="btn btn-dark" style={{ width: '100%' }} onClick={toggleSubmit}>
                   Reopen for editing
@@ -529,6 +564,10 @@ export default function Annotator({ essayId, user, isAdmin }) {
               </>
             ) : (
               <>
+                <div className="auth-info" style={{ fontSize: 11.5, marginBottom: 10 }}>
+                  ⚠️ Once you submit, you can&apos;t edit or clear your annotations and scores until you
+                  “Reopen for editing”.
+                </div>
                 <button
                   className="btn"
                   style={{ width: '100%' }}
