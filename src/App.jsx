@@ -144,7 +144,24 @@ export default function App() {
         route={route}
         profile={profile}
         isAdmin={isAdmin}
-        onLogout={() => supabase.auth.signOut()}
+        onLogout={async () => {
+          // scope:'local' clears the browser session without a server round-trip,
+          // so logout works even if the refresh token is invalid / offline.
+          try {
+            await supabase.auth.signOut({ scope: 'local' })
+          } catch (e) {
+            /* ignore — fall through to a hard local clear */
+          }
+          try {
+            Object.keys(localStorage)
+              .filter((k) => k.startsWith('sb-'))
+              .forEach((k) => localStorage.removeItem(k))
+          } catch (e) {
+            /* ignore */
+          }
+          setProfile(null)
+          setSession(null)
+        }}
       />
       <main className="page">
         <div className="page-inner">{content}</div>
