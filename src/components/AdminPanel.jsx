@@ -171,24 +171,105 @@ function LabelsTab() {
   )
 }
 
+/* per-essay multi-rater assignment dropdown */
+const EMPTY_SET = new Set()
+function RaterAssign({ essayId, raters, assigned, adminId, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (ev) => {
+      if (ref.current && !ref.current.contains(ev.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [open])
+
+  async function toggle(rid) {
+    if (assigned.has(rid)) {
+      const { error } = await supabase
+        .from('essay_assignments')
+        .delete()
+        .eq('essay_id', essayId)
+        .eq('user_id', rid)
+      if (error) return toast(error.message, 'error')
+      onChange(essayId, rid, false)
+    } else {
+      const { error } = await supabase
+        .from('essay_assignments')
+        .insert({ essay_id: essayId, user_id: rid, assigned_by: adminId })
+      if (error) return toast(error.message, 'error')
+      onChange(essayId, rid, true)
+    }
+  }
+
+  const count = assigned.size
+  return (
+    <div className="rater-dd" ref={ref}>
+      <button
+        className="btn btn-dark"
+        style={{ padding: '5px 10px', fontSize: 12, minWidth: 112 }}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {count === 0 ? 'Assign raters' : `${count} rater${count === 1 ? '' : 's'}`} ▾
+      </button>
+      {open && (
+        <div className="rater-dd-menu">
+          {raters.length === 0 && <div className="rater-dd-empty">No users yet</div>}
+          {raters.map((r) => (
+            <label key={r.id} className="rater-dd-item">
+              <input type="checkbox" checked={assigned.has(r.id)} onChange={() => toggle(r.id)} />
+              <span>
+                {r.name}
+                {r.role === 'admin' ? ' (admin)' : ''}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ---------- Essays tab ---------- */
 function EssaysTab({ user }) {
   const [essays, setEssays] = useState(null)
   const [editing, setEditing] = useState(null) // essay object or 'new'
   const [form, setForm] = useState({ title: '', prompt: '', content: '' })
+  const [raters, setRaters] = useState([])
+  const [assignMap, setAssignMap] = useState({}) // essayId -> Set(userId)
   const csvRef = useRef(null)
 
   async function load() {
-    const { data, error } = await supabase
-      .from('essays')
-      .select('id, title, prompt, content, created_at, native_language')
-      .order('created_at')
+    const [{ data, error }, { data: profs }, { data: asg }] = await Promise.all([
+      supabase
+        .from('essays')
+        .select('id, title, prompt, content, created_at, native_language')
+        .order('created_at'),
+      supabase.from('profiles').select('id, display_name, email, role').order('created_at'),
+      supabase.from('essay_assignments').select('essay_id, user_id'),
+    ])
     if (error) return toast(error.message, 'error')
+    const map = {}
+    for (const a of asg || []) (map[a.essay_id] = map[a.essay_id] || new Set()).add(a.user_id)
+    setRaters((profs || []).map((p) => ({ id: p.id, name: p.display_name || p.email, role: p.role })))
+    setAssignMap(map)
     setEssays(data)
   }
   useEffect(() => {
     load()
   }, [])
+
+  function onAssignChange(essayId, rid, added) {
+    setAssignMap((prev) => {
+      const next = { ...prev }
+      const s = new Set(next[essayId] || [])
+      if (added) s.add(rid)
+      else s.delete(rid)
+      next[essayId] = s
+      return next
+    })
+  }
 
   function openEdit(essay) {
     setEditing(essay)
@@ -326,6 +407,7 @@ function EssaysTab({ user }) {
             <th>Title</th>
             <th>Words</th>
             <th>Lang</th>
+            <th>Raters</th>
             <th>Added</th>
             <th />
           </tr>
@@ -338,6 +420,15 @@ function EssaysTab({ user }) {
               </td>
               <td>{e.content.split(/\s+/).length}</td>
               <td className="cell-dim">{e.native_language || '—'}</td>
+              <td>
+                <RaterAssign
+                  essayId={e.id}
+                  raters={raters}
+                  assigned={assignMap[e.id] || EMPTY_SET}
+                  adminId={user.id}
+                  onChange={onAssignChange}
+                />
+              </td>
               <td>{new Date(e.created_at).toLocaleDateString()}</td>
               <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                 <button className="btn btn-dark" style={{ padding: '5px 12px', fontSize: 12 }} onClick={() => openEdit(e)}>
