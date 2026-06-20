@@ -320,7 +320,16 @@ export default function Annotator({ essayId, user }) {
         <div style={{ flex: 1, minWidth: 0, position: 'relative' }} ref={wrapRef}>
           <div className="essay-paper">
             <h1>{essay.title}</h1>
-            {essay.prompt && <div className="essay-prompt">{essay.prompt}</div>}
+            {essay.prompt && essay.prompt !== essay.title && <div className="essay-prompt">{essay.prompt}</div>}
+            {(essay.native_language || essay.holistic_essay_score || essay.ordinal_score || essay.essay_word_count || essay.task) && (
+              <div className="essay-meta">
+                {essay.native_language && <span>L1: {essay.native_language}</span>}
+                {essay.task && <span>Task: {essay.task}</span>}
+                {essay.essay_word_count != null && <span>{essay.essay_word_count} words</span>}
+                {essay.holistic_essay_score && <span>Ref holistic: {essay.holistic_essay_score}</span>}
+                {essay.ordinal_score && <span>Ordinal: {essay.ordinal_score}</span>}
+              </div>
+            )}
             <div className="essay-text" onMouseUp={handleMouseUp}>
               {paragraphs.map(renderParagraph)}
             </div>

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
+import { parseCSVObjects } from '../lib/csv.js'
 import TxtUpload from './TxtUpload.jsx'
 import ComparisonTab from './ComparisonTab.jsx'
 
@@ -175,11 +176,12 @@ function EssaysTab({ user }) {
   const [essays, setEssays] = useState(null)
   const [editing, setEditing] = useState(null) // essay object or 'new'
   const [form, setForm] = useState({ title: '', prompt: '', content: '' })
+  const csvRef = useRef(null)
 
   async function load() {
     const { data, error } = await supabase
       .from('essays')
-      .select('id, title, prompt, content, created_at')
+      .select('id, title, prompt, content, created_at, native_language')
       .order('created_at')
     if (error) return toast(error.message, 'error')
     setEssays(data)
@@ -208,6 +210,57 @@ function EssaysTab({ user }) {
     if (error) return toast(error.message, 'error')
     toast(`Imported ${rows.length} essays from files`)
     setEditing(null)
+    load()
+  }
+
+  async function importCsv(file) {
+    let objs
+    try {
+      objs = parseCSVObjects(await file.text())
+    } catch (err) {
+      return toast('CSV parse failed: ' + err.message, 'error')
+    }
+    const pick = (o, ...names) => {
+      for (const n of names) {
+        const k = Object.keys(o).find((kk) => kk.toLowerCase().trim() === n.toLowerCase())
+        if (k && o[k] != null && String(o[k]).trim() !== '') return String(o[k]).trim()
+      }
+      return null
+    }
+    const rows = []
+    for (const o of objs) {
+      const content = (pick(o, 'full_text', 'content', 'essay', 'text') || '').replace(/\r\n/g, '\n').trim()
+      if (!content) continue
+      const sid = pick(o, 'essay_id', 'id')
+      const pname = pick(o, 'prompt_name')
+      const wc = pick(o, 'essay_word_count', 'word_count')
+      const promptText = pick(o, 'assignment', 'prompt')
+      rows.push({
+        title: (promptText || pname || 'Essay #' + (sid || rows.length + 1)).slice(0, 200),
+        prompt: promptText,
+        content,
+        source_essay_id: sid,
+        ordinal_score: pick(o, 'ordinal_score'),
+        holistic_essay_score: pick(o, 'holistic_essay_score'),
+        task: pick(o, 'task'),
+        prompt_name: pname,
+        essay_word_count: wc ? parseInt(wc.replace(/[^0-9]/g, ''), 10) || null : null,
+        native_language: pick(o, 'native language', 'native_language'),
+        created_by: user.id,
+      })
+    }
+    if (!rows.length) return toast('No rows with essay text found in CSV', 'error')
+    if (!window.confirm(`Import ${rows.length} essays from this CSV?`)) return
+    let ok = 0
+    for (let i = 0; i < rows.length; i += 100) {
+      const { error } = await supabase.from('essays').insert(rows.slice(i, i + 100))
+      if (error) {
+        toast(`Stopped after ${ok}: ${error.message}`, 'error')
+        break
+      }
+      ok += Math.min(100, rows.length - i)
+    }
+    toast(`✓ Imported ${ok} of ${rows.length} essays`)
     load()
   }
 
@@ -247,16 +300,31 @@ function EssaysTab({ user }) {
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
         <button className="btn" onClick={() => openEdit('new')}>
           + Add essay
         </button>
+        <button className="btn btn-dark" onClick={() => csvRef.current?.click()}>
+          Import CSV (bulk)
+        </button>
+        <input
+          ref={csvRef}
+          type="file"
+          accept=".csv,text/csv"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) importCsv(f)
+            e.target.value = ''
+          }}
+        />
       </div>
       <table className="table">
         <thead>
           <tr>
             <th>Title</th>
             <th>Words</th>
+            <th>Lang</th>
             <th>Added</th>
             <th />
           </tr>
@@ -268,6 +336,7 @@ function EssaysTab({ user }) {
                 <a href={`#/annotate/${e.id}`}>{e.title}</a>
               </td>
               <td>{e.content.split(/\s+/).length}</td>
+              <td className="cell-dim">{e.native_language || '—'}</td>
               <td>{new Date(e.created_at).toLocaleDateString()}</td>
               <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
                 <button className="btn btn-dark" style={{ padding: '5px 12px', fontSize: 12 }} onClick={() => openEdit(e)}>
@@ -385,6 +454,157 @@ function UsersTab({ user }) {
   )
 }
 
+/* ---------- Assignments tab ---------- */
+function AssignmentsTab({ user }) {
+  const [raters, setRaters] = useState(null)
+  const [essays, setEssays] = useState([])
+  const [raterId, setRaterId] = useState('')
+  const [assigned, setAssigned] = useState(new Set())
+  const [orig, setOrig] = useState(new Set())
+  const [q, setQ] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      supabase.from('profiles').select('id, display_name, email, role').order('created_at'),
+      supabase.from('essays').select('id, title, native_language').order('created_at'),
+    ]).then(([{ data: p, error: e1 }, { data: es, error: e2 }]) => {
+      if (e1 || e2) return toast((e1 || e2).message, 'error')
+      setRaters(p || [])
+      setEssays(es || [])
+    })
+  }, [])
+
+  async function selectRater(id) {
+    setRaterId(id)
+    setQ('')
+    if (!id) {
+      setAssigned(new Set())
+      setOrig(new Set())
+      return
+    }
+    const { data, error } = await supabase.from('essay_assignments').select('essay_id').eq('user_id', id)
+    if (error) return toast(error.message, 'error')
+    const s = new Set((data || []).map((r) => r.essay_id))
+    setAssigned(new Set(s))
+    setOrig(s)
+  }
+
+  const filtered = essays.filter((e) => {
+    if (!q) return true
+    const s = q.toLowerCase()
+    return (e.title || '').toLowerCase().includes(s) || (e.native_language || '').toLowerCase().includes(s)
+  })
+
+  function toggle(id) {
+    setAssigned((prev) => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+  function addFiltered() {
+    setAssigned((prev) => { const n = new Set(prev); filtered.forEach((e) => n.add(e.id)); return n })
+  }
+  function removeFiltered() {
+    setAssigned((prev) => { const n = new Set(prev); filtered.forEach((e) => n.delete(e.id)); return n })
+  }
+
+  const toAdd = [...assigned].filter((id) => !orig.has(id))
+  const toRemove = [...orig].filter((id) => !assigned.has(id))
+  const dirty = toAdd.length > 0 || toRemove.length > 0
+
+  async function save() {
+    if (!raterId) return
+    setSaving(true)
+    try {
+      for (let i = 0; i < toAdd.length; i += 100) {
+        const chunk = toAdd.slice(i, i + 100).map((eid) => ({ essay_id: eid, user_id: raterId, assigned_by: user.id }))
+        const { error } = await supabase.from('essay_assignments').insert(chunk)
+        if (error) throw error
+      }
+      for (let i = 0; i < toRemove.length; i += 100) {
+        const chunk = toRemove.slice(i, i + 100)
+        const { error } = await supabase.from('essay_assignments').delete().eq('user_id', raterId).in('essay_id', chunk)
+        if (error) throw error
+      }
+      setOrig(new Set(assigned))
+      toast(`Saved — ${assigned.size} essay(s) assigned`)
+    } catch (e) {
+      toast(e.message, 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!raters) return <div className="spinner" />
+
+  return (
+    <>
+      <p className="hero-desc" style={{ marginTop: -8 }}>
+        Pick a rater, then choose which essays they can see. Raters only see essays assigned to them.
+      </p>
+      <div className="field" style={{ maxWidth: 360 }}>
+        <label>Rater</label>
+        <select className="input" value={raterId} onChange={(e) => selectRater(e.target.value)}>
+          <option value="">Select a rater to assign essays…</option>
+          {raters.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.display_name || r.email}
+              {r.role === 'admin' ? ' (admin)' : ''}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {raterId && (
+        <div className="panel-card" style={{ padding: 16 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+            <input
+              className="input"
+              style={{ maxWidth: 260 }}
+              placeholder="Search essays…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+            <button className="btn btn-dark" style={{ padding: '6px 12px', fontSize: 12 }} onClick={addFiltered}>
+              Select all{q ? ' (filtered)' : ''}
+            </button>
+            <button className="btn btn-dark" style={{ padding: '6px 12px', fontSize: 12 }} onClick={removeFiltered}>
+              Clear{q ? ' (filtered)' : ''}
+            </button>
+            <span style={{ marginLeft: 'auto', color: 'var(--text-3)', fontSize: 12 }}>
+              {assigned.size} assigned · {filtered.length} shown
+            </span>
+          </div>
+          <div className="scope-list" style={{ maxHeight: '52vh' }}>
+            {filtered.map((e) => (
+              <label key={e.id} className="scope-item">
+                <input type="checkbox" checked={assigned.has(e.id)} onChange={() => toggle(e.id)} />
+                <span className="scope-name">
+                  {e.title}
+                  {e.native_language ? <em> · {e.native_language}</em> : null}
+                </span>
+              </label>
+            ))}
+            {filtered.length === 0 && <div className="scope-empty">No essays match.</div>}
+          </div>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="btn" disabled={!dirty || saving} onClick={save}>
+              {saving ? 'Saving…' : 'Save assignments'}
+            </button>
+            {dirty && (
+              <span style={{ color: 'var(--text-3)', fontSize: 12 }}>
+                +{toAdd.length} / −{toRemove.length} pending
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 /* ---------- panel shell ---------- */
 export default function AdminPanel({ user }) {
   const [tab, setTab] = useState('labels')
@@ -394,11 +614,11 @@ export default function AdminPanel({ user }) {
         Admin <span className="hero-sub">— labels, essays & annotators</span>
       </h1>
       <p className="hero-desc">
-        Define the label set (add custom moves, recolor, deactivate), manage the essay corpus,
-        control user roles, and compare how annotators agree on each essay.
+        Define the label set, manage the essay corpus (incl. bulk CSV import), assign essays to
+        raters, control user roles, and compare how annotators agree on each essay.
       </p>
       <div className="tabs">
-        {['labels', 'essays', 'users', 'compare'].map((t) => (
+        {['labels', 'essays', 'assign', 'users', 'compare'].map((t) => (
           <button key={t} className={`tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
             {t[0].toUpperCase() + t.slice(1)}
           </button>
@@ -406,6 +626,7 @@ export default function AdminPanel({ user }) {
       </div>
       {tab === 'labels' && <LabelsTab />}
       {tab === 'essays' && <EssaysTab user={user} />}
+      {tab === 'assign' && <AssignmentsTab user={user} />}
       {tab === 'users' && <UsersTab user={user} />}
       {tab === 'compare' && <ComparisonTab />}
     </>
