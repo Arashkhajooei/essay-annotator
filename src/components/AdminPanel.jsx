@@ -235,8 +235,9 @@ function EssaysTab({ user }) {
       const pname = pick(o, 'prompt_name')
       const wc = pick(o, 'essay_word_count', 'word_count')
       const promptText = pick(o, 'assignment', 'prompt')
+      const cleanId = (sid || String(rows.length + 1)).replace(/\.txt$/i, '')
       rows.push({
-        title: (promptText || pname || 'Essay #' + (sid || rows.length + 1)).slice(0, 200),
+        title: ((pname ? pname + ' · ' : '') + '#' + cleanId).slice(0, 200),
         prompt: promptText,
         content,
         source_essay_id: sid,
