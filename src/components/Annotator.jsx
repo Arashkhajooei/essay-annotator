@@ -47,7 +47,7 @@ function findPara(node) {
 const boolToStr = (b) => (b === true ? 'yes' : b === false ? 'no' : '')
 const strToBool = (s) => (s === 'yes' ? true : s === 'no' ? false : null)
 
-export default function Annotator({ essayId, user }) {
+export default function Annotator({ essayId, user, isAdmin }) {
   const [essay, setEssay] = useState(null)
   const [labels, setLabels] = useState([])
   const [anns, setAnns] = useState([])
@@ -321,13 +321,14 @@ export default function Annotator({ essayId, user }) {
           <div className="essay-paper">
             <h1>{essay.title}</h1>
             {essay.prompt && essay.prompt !== essay.title && <div className="essay-prompt">{essay.prompt}</div>}
-            {(essay.native_language || essay.holistic_essay_score || essay.ordinal_score || essay.essay_word_count || essay.task) && (
+            {(essay.native_language || essay.task || essay.essay_word_count != null ||
+              (isAdmin && (essay.holistic_essay_score || essay.ordinal_score))) && (
               <div className="essay-meta">
                 {essay.native_language && <span>L1: {essay.native_language}</span>}
                 {essay.task && <span>Task: {essay.task}</span>}
                 {essay.essay_word_count != null && <span>{essay.essay_word_count} words</span>}
-                {essay.holistic_essay_score && <span>Ref holistic: {essay.holistic_essay_score}</span>}
-                {essay.ordinal_score && <span>Ordinal: {essay.ordinal_score}</span>}
+                {isAdmin && essay.holistic_essay_score && <span>Ref holistic: {essay.holistic_essay_score}</span>}
+                {isAdmin && essay.ordinal_score && <span>Ordinal: {essay.ordinal_score}</span>}
               </div>
             )}
             <div className="essay-text" onMouseUp={handleMouseUp}>
