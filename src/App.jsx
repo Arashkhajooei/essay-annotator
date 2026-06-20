@@ -127,7 +127,7 @@ export default function App() {
   let content
   if (route.page === 'annotate' && route.param) {
     content = <Annotator essayId={route.param} user={session.user} isAdmin={isAdmin} />
-  } else if (route.page === 'export') {
+  } else if (route.page === 'export' && isAdmin) {
     content = <ExportPanel user={session.user} isAdmin={isAdmin} />
   } else if (route.page === 'admin' && isAdmin) {
     content = <AdminPanel user={session.user} />

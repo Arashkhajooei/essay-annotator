@@ -35,10 +35,8 @@ const icons = {
 }
 
 export default function Sidebar({ route, profile, isAdmin, onLogout }) {
-  const nav = [
-    { key: 'essays', label: 'Essays', hash: '#/essays' },
-    { key: 'export', label: 'Export', hash: '#/export' },
-  ]
+  const nav = [{ key: 'essays', label: 'Essays', hash: '#/essays' }]
+  if (isAdmin) nav.push({ key: 'export', label: 'Export', hash: '#/export' })
   if (isAdmin) nav.push({ key: 'admin', label: 'Admin', hash: '#/admin' })
 
   const active = route.page === 'annotate' ? 'essays' : route.page
