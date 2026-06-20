@@ -79,8 +79,7 @@ export default function EssayList({ user, isAdmin }) {
       <p className="hero-desc">
         Open an essay and mark its <b>Lead, Position, Claims, Counterclaims, Rebuttals, Evidence
         and Concluding Statement</b>. Your annotations are private to your account; submit each
-        essay when you&apos;re done and grab datasets from the{' '}
-        <a href="#/export">Export</a> page.
+        essay when you&apos;re done.
       </p>
 
       <div className="hl-row">
