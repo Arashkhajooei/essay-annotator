@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 const icons = {
   essays: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -34,17 +32,6 @@ const icons = {
       <path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
     </svg>
   ),
-  sun: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-    </svg>
-  ),
-  moon: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" />
-    </svg>
-  ),
 }
 
 export default function Sidebar({ route, profile, isAdmin, onLogout }) {
@@ -53,20 +40,6 @@ export default function Sidebar({ route, profile, isAdmin, onLogout }) {
   if (isAdmin) nav.push({ key: 'admin', label: 'Admin', hash: '#/admin' })
 
   const active = route.page === 'annotate' ? 'essays' : route.page
-
-  const [theme, setTheme] = useState(
-    () => (typeof document !== 'undefined' && document.documentElement.dataset.theme) || 'dark'
-  )
-  function toggleTheme() {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    document.documentElement.dataset.theme = next
-    try {
-      localStorage.setItem('rita-theme', next)
-    } catch (e) {
-      /* ignore */
-    }
-    setTheme(next)
-  }
 
   return (
     <nav className="sidebar">
@@ -89,10 +62,6 @@ export default function Sidebar({ route, profile, isAdmin, onLogout }) {
             )}
           </span>
         </div>
-        <button className="nav-item" onClick={toggleTheme} title="Toggle light / dark mode">
-          {theme === 'dark' ? icons.sun : icons.moon}
-          <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
-        </button>
         <button className="nav-item" onClick={onLogout}>
           {icons.logout}
           <span>Log out</span>

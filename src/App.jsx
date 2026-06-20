@@ -8,6 +8,7 @@ import EssayList from './components/EssayList.jsx'
 import Annotator from './components/Annotator.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 import ExportPanel from './components/ExportPanel.jsx'
+import ThemeToggle from './components/ThemeToggle.jsx'
 
 function parseHash() {
   const h = window.location.hash.replace(/^#\/?/, '')
@@ -103,6 +104,7 @@ export default function App() {
   if (!authReady) return <div className="spinner" />
   if (!session) return (
     <>
+      <ThemeToggle />
       <AuthScreen />
       <Toasts />
     </>
@@ -137,6 +139,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <ThemeToggle />
       <Sidebar
         route={route}
         profile={profile}
