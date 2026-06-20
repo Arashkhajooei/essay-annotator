@@ -421,8 +421,17 @@ export default function Annotator({ essayId, user, isAdmin }) {
           </div>
 
           <div className="panel-card">
-            <h3>
-              Your annotations ({anns.length})
+            <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span>Your annotations ({anns.length})</span>
+              {!isSubmitted && anns.length > 0 && (
+                <button
+                  className="btn btn-danger"
+                  style={{ padding: '3px 10px', fontSize: 11 }}
+                  onClick={clearAllAnnotations}
+                >
+                  Clear all
+                </button>
+              )}
             </h3>
             <div className="ann-list">
               {sortedAnns.length === 0 && (
@@ -469,15 +478,6 @@ export default function Annotator({ essayId, user, isAdmin }) {
                 )
               })}
             </div>
-            {!isSubmitted && anns.length > 0 && (
-              <button
-                className="btn btn-danger"
-                style={{ width: '100%', marginTop: 10, fontSize: 12 }}
-                onClick={clearAllAnnotations}
-              >
-                Clear all my annotations
-              </button>
-            )}
           </div>
 
           <div className="panel-card">
