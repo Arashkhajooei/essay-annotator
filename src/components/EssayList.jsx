@@ -109,9 +109,11 @@ export default function EssayList({ user, isAdmin }) {
           <span style={{ color: 'var(--text-3)', fontSize: 12 }}>
             {essays.length} essay{essays.length === 1 ? '' : 's'} · click a row to annotate
           </span>
-          <button className="btn" onClick={() => setShowAdd(true)}>
-            + New essay
-          </button>
+          {isAdmin && (
+            <button className="btn" onClick={() => setShowAdd(true)}>
+              + New essay
+            </button>
+          )}
         </div>
         {essays.length === 0 ? (
           <div className="empty" style={{ border: 'none' }}>
