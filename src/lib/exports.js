@@ -83,12 +83,14 @@ function bioTags(tokens, spans) {
 }
 
 /* ---------- formats ---------- */
+const naText = (v) => (v == null || v === '' ? 'N/A' : v)
+const naBool = (b) => (b == null ? 'N/A' : b ? 'Yes' : 'No')
 const rubricOf = (d) => ({
-  holistic_score: d.score,
-  prompt_adherence: d.prompt_adherence,
-  task_validity: d.task_validity,
-  coherence_local: d.coherence_local,
-  coherence_global: d.coherence_global,
+  holistic_score: naText(d.score),
+  prompt_adherence: naText(d.prompt_adherence),
+  task_validity: naText(d.task_validity),
+  coherence_local: naBool(d.coherence_local),
+  coherence_global: naBool(d.coherence_global),
 })
 
 export function toJSON(docs) {
@@ -131,7 +133,6 @@ export function toJSONL(docs) {
 export function toCSV(docs) {
   // Kaggle Feedback Prize style discourse table
   const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const yn = (b) => (b == null ? '' : b ? 'Yes' : 'No')
   const rows = [
     'essay_id,essay_title,annotator,holistic_score,prompt_adherence,task_validity,coherence_local,coherence_global,discourse_type,discourse_start,discourse_end,discourse_text,discourse_note',
   ]
@@ -140,8 +141,8 @@ export function toCSV(docs) {
       rows.push(
         [
           esc(d.essay_id), esc(d.title), esc(d.annotator),
-          esc(d.score ?? ''), esc(d.prompt_adherence ?? ''), esc(d.task_validity ?? ''),
-          esc(yn(d.coherence_local)), esc(yn(d.coherence_global)),
+          esc(naText(d.score)), esc(naText(d.prompt_adherence)), esc(naText(d.task_validity)),
+          esc(naBool(d.coherence_local)), esc(naBool(d.coherence_global)),
           esc(s.label), s.start, s.end, esc(s.text), esc(s.note ?? ''),
         ].join(',')
       )
@@ -154,11 +155,11 @@ export function toCoNLL(docs) {
   for (const d of docs) {
     out.push(`# essay_id = ${d.essay_id}`)
     out.push(`# annotator = ${d.annotator}`)
-    out.push(`# holistic_score = ${d.score ?? 'NA'}`)
-    out.push(`# prompt_adherence = ${d.prompt_adherence ?? 'NA'}`)
-    out.push(`# task_validity = ${d.task_validity ?? 'NA'}`)
-    out.push(`# coherence_local = ${d.coherence_local == null ? 'NA' : d.coherence_local ? 'Yes' : 'No'}`)
-    out.push(`# coherence_global = ${d.coherence_global == null ? 'NA' : d.coherence_global ? 'Yes' : 'No'}`)
+    out.push(`# holistic_score = ${naText(d.score)}`)
+    out.push(`# prompt_adherence = ${naText(d.prompt_adherence)}`)
+    out.push(`# task_validity = ${naText(d.task_validity)}`)
+    out.push(`# coherence_local = ${naBool(d.coherence_local)}`)
+    out.push(`# coherence_global = ${naBool(d.coherence_global)}`)
     const tokens = tokenize(d.text)
     const tags = bioTags(tokens, d.spans)
     tokens.forEach((tok, i) => out.push(`${tok.t}\t${tags[i]}`))

@@ -6,7 +6,7 @@ import { computeComparison, getParagraphs } from '../lib/agreement.js'
 const RATER_COLORS = ['#7da6f2', '#f472b6', '#4ade80', '#fcd34d', '#c084fc', '#2dd4bf', '#fb923c', '#60a5fa']
 const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`)
 const kap = (x) => (x == null ? '—' : x.toFixed(3))
-const boolLabel = (b) => (b === true ? 'Yes' : b === false ? 'No' : '—')
+const boolLabel = (b) => (b === true ? 'Yes' : b === false ? 'No' : 'N/A')
 
 export default function ComparisonTab() {
   const [essays, setEssays] = useState(null)
@@ -198,9 +198,9 @@ function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder
                           {r.name}
                         </span>
                       </td>
-                      <td className="cell-dim">{rb.score ?? '—'}</td>
-                      <td className="cell-dim">{rb.prompt_adherence ?? '—'}</td>
-                      <td className="cell-dim">{rb.task_validity ?? '—'}</td>
+                      <td className="cell-dim">{rb.score ?? 'N/A'}</td>
+                      <td className="cell-dim">{rb.prompt_adherence ?? 'N/A'}</td>
+                      <td className="cell-dim">{rb.task_validity ?? 'N/A'}</td>
                       <td className="cell-dim">{boolLabel(rb.coherence_local)}</td>
                       <td className="cell-dim">{boolLabel(rb.coherence_global)}</td>
                     </tr>

@@ -323,7 +323,6 @@ export default function Annotator({ essayId, user, isAdmin }) {
   const sortedAnns = [...anns].sort((a, b) => a.start_offset - b.start_offset)
   const taggedChars = anns.reduce((s, a) => s + (a.end_offset - a.start_offset), 0)
   const coverage = Math.min(100, Math.round((taggedChars / Math.max(essay.content.length, 1)) * 100))
-  const canSubmit = !!(rubric.score && rubric.prompt_adherence && rubric.task_validity)
 
   return (
     <>
@@ -490,7 +489,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
                 value={rubric.score ?? ''}
                 onChange={(ev) => saveRubric({ score: ev.target.value ? parseInt(ev.target.value, 10) : null })}
               >
-                <option value="">— not scored —</option>
+                <option value="">N/A</option>
                 {[1, 2, 3, 4, 5, 6].map((n) => (
                   <option key={n} value={n}>{n}</option>
                 ))}
@@ -504,7 +503,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
                 value={rubric.prompt_adherence ?? ''}
                 onChange={(ev) => saveRubric({ prompt_adherence: ev.target.value || null })}
               >
-                <option value="">—</option>
+                <option value="">N/A</option>
                 {['Full', 'Partial', 'None'].map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}
@@ -518,7 +517,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
                 value={rubric.task_validity ?? ''}
                 onChange={(ev) => saveRubric({ task_validity: ev.target.value || null })}
               >
-                <option value="">—</option>
+                <option value="">N/A</option>
                 {['On task', 'Off task'].map((v) => (
                   <option key={v} value={v}>{v}</option>
                 ))}
@@ -532,7 +531,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
                 value={boolToStr(rubric.coherence_local)}
                 onChange={(ev) => saveRubric({ coherence_local: strToBool(ev.target.value) })}
               >
-                <option value="">—</option>
+                <option value="">N/A</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
               </select>
@@ -545,7 +544,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
                 value={boolToStr(rubric.coherence_global)}
                 onChange={(ev) => saveRubric({ coherence_global: strToBool(ev.target.value) })}
               >
-                <option value="">—</option>
+                <option value="">N/A</option>
                 <option value="yes">Yes</option>
                 <option value="no">No</option>
               </select>
@@ -571,16 +570,14 @@ export default function Annotator({ essayId, user, isAdmin }) {
                 <button
                   className="btn"
                   style={{ width: '100%' }}
-                  disabled={anns.length === 0 || !canSubmit}
+                  disabled={anns.length === 0}
                   onClick={toggleSubmit}
                 >
                   Submit annotation
                 </button>
-                {anns.length > 0 && !canSubmit && (
-                  <div style={{ color: 'var(--text-3)', fontSize: 11, marginTop: 6 }}>
-                    Required before submit: score, prompt adherence, task validity.
-                  </div>
-                )}
+                <div style={{ color: 'var(--text-3)', fontSize: 11, marginTop: 6 }}>
+                  Any rubric field left unset is submitted and recorded as N/A.
+                </div>
               </>
             )}
           </div>
