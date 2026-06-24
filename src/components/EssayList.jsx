@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
+import { useAutoRefresh } from '../lib/useAutoRefresh.js'
 import TxtUpload from './TxtUpload.jsx'
 
 export default function EssayList({ user, isAdmin }) {
@@ -32,6 +33,8 @@ export default function EssayList({ user, isAdmin }) {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id])
+  // auto-refresh so new assignments appear without a manual reload
+  useAutoRefresh(load)
 
   async function bulkImport(files) {
     const rows = files.map((f) => ({

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
 import { parseCSVObjects } from '../lib/csv.js'
+import { useAutoRefresh } from '../lib/useAutoRefresh.js'
 import TxtUpload from './TxtUpload.jsx'
 import ComparisonTab from './ComparisonTab.jsx'
 
@@ -108,6 +109,7 @@ function LabelsTab() {
   useEffect(() => {
     load()
   }, [])
+  useAutoRefresh(load)
 
   async function add(e) {
     e.preventDefault()
@@ -259,6 +261,7 @@ function EssaysTab({ user }) {
   useEffect(() => {
     load()
   }, [])
+  useAutoRefresh(load)
 
   function onAssignChange(essayId, rid, added) {
     setAssignMap((prev) => {
@@ -500,6 +503,7 @@ function UsersTab({ user }) {
   useEffect(() => {
     load()
   }, [])
+  useAutoRefresh(load)
 
   async function setRole(p, role) {
     const { error } = await supabase.from('profiles').update({ role }).eq('id', p.id)

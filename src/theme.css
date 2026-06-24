@@ -954,6 +954,25 @@ input[type="color"].swatch-input {
 .rater-dd-item input { accent-color: var(--blue); width: 14px; height: 14px; flex: none; }
 .rater-dd-empty { padding: 8px; color: var(--text-3); font-size: 12px; }
 
+/* "new version available" banner */
+.update-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card-solid);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 7px 8px 7px 16px;
+  font-size: 13px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
 /* top-right theme toggle */
 .theme-toggle {
   position: fixed;

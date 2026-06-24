@@ -37,6 +37,52 @@ function Toasts() {
   )
 }
 
+const RUNNING_BUILD = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'
+
+/* Detect a freshly deployed build (version.json changes) and offer a one-click,
+ * cache-busting reload — so code updates apply without a manual hard refresh. */
+function UpdateBanner() {
+  const [latest, setLatest] = useState(null)
+  useEffect(() => {
+    let alive = true
+    const check = async () => {
+      try {
+        const r = await fetch(new URL('version.json', document.baseURI).href + '?t=' + Date.now(), {
+          cache: 'no-store',
+        })
+        if (!r.ok) return
+        const { build } = await r.json()
+        if (alive && build && build !== RUNNING_BUILD) setLatest(build)
+      } catch {
+        /* offline / version.json missing — ignore */
+      }
+    }
+    check()
+    const onFocus = () => check()
+    window.addEventListener('focus', onFocus)
+    const id = setInterval(check, 120000)
+    return () => {
+      alive = false
+      window.removeEventListener('focus', onFocus)
+      clearInterval(id)
+    }
+  }, [])
+  if (!latest) return null
+  const reload = () => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('v', latest) // cache-bust index.html so the new code loads
+    window.location.replace(url.toString())
+  }
+  return (
+    <div className="update-banner">
+      <span>A new version is available.</span>
+      <button className="btn" style={{ height: 28, padding: '0 12px' }} onClick={reload}>
+        Reload
+      </button>
+    </div>
+  )
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [authReady, setAuthReady] = useState(false)
@@ -104,6 +150,7 @@ export default function App() {
   if (!authReady) return <div className="spinner" />
   if (!session) return (
     <>
+      <UpdateBanner />
       <ThemeToggle />
       <AuthScreen />
       <Toasts />
@@ -139,6 +186,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <UpdateBanner />
       <ThemeToggle />
       <Sidebar
         route={route}

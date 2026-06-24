@@ -4,7 +4,11 @@ import { createClient } from '@supabase/supabase-js'
 export const SUPABASE_URL = 'https://ibylxunqtpbuobvjwxoz.supabase.co'
 export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_X_eoA7uToTLjHIiNobB2yg_sCbkXD-y'
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  // Never serve API responses from the HTTP cache — guarantees admin changes
+  // (assignments, roles, labels…) are seen as soon as the client refetches.
+  global: { fetch: (input, init = {}) => fetch(input, { ...init, cache: 'no-store' }) },
+})
 
 export const PROJECT_REF = 'ibylxunqtpbuobvjwxoz'
 export const SQL_EDITOR_URL = `https://supabase.com/dashboard/project/${PROJECT_REF}/sql/new`
