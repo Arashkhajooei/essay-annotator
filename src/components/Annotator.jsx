@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
+import { useAutoRefresh } from '../lib/useAutoRefresh.js'
 
 /* Split text into paragraphs (blank-line separated) with absolute char offsets. */
 function getParagraphs(text) {
@@ -106,6 +107,13 @@ export default function Annotator({ essayId, user, isAdmin }) {
   useEffect(() => {
     load()
   }, [load])
+
+  // Auto-refresh so admin changes (label edits/deactivation, re-assignment, a
+  // submission lock changed elsewhere) reach this page without a manual reload.
+  // Skip while the tag palette is open so an in-progress annotation isn't disturbed.
+  useAutoRefresh(() => {
+    if (!palette) load()
+  })
 
   const paragraphs = useMemo(() => (essay ? getParagraphs(essay.content) : []), [essay])
 

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
 import { computeComparison, getParagraphs } from '../lib/agreement.js'
+import { useAutoRefresh } from '../lib/useAutoRefresh.js'
 
 const RATER_COLORS = ['#7da6f2', '#f472b6', '#4ade80', '#fcd34d', '#c084fc', '#2dd4bf', '#fb923c', '#60a5fa']
 const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`)
@@ -14,22 +15,16 @@ export default function ComparisonTab() {
   const [data, setData] = useState(null) // { essay, allRaters, spansByRater, labelColor, labelOrder, scoreByRater }
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    supabase
-      .from('essays')
-      .select('id, title')
-      .order('created_at')
-      .then(({ data, error }) => {
-        if (error) return toast(error.message, 'error')
-        setEssays(data || [])
-      })
+  const loadEssays = useCallback(async () => {
+    const { data, error } = await supabase.from('essays').select('id, title').order('created_at')
+    if (error) return toast(error.message, 'error')
+    setEssays(data || [])
   }, [])
 
-  async function loadEssay(id) {
-    setEssayId(id)
-    setData(null)
-    if (!id) return
-    setLoading(true)
+  // Fetch + shape the comparison for one essay. Returns the data object (or null
+  // on error) and never touches UI state, so a background refresh can call it
+  // without blanking the view or flashing a spinner.
+  const fetchComparison = useCallback(async (id) => {
     const [{ data: essay, error: e1 }, { data: anns, error: e2 }, { data: labels, error: e3 }, { data: scores, error: e4 }] =
       await Promise.all([
         supabase.from('essays').select('*').eq('id', id).single(),
@@ -44,9 +39,10 @@ export default function ComparisonTab() {
           .select('user_id, score, prompt_adherence, task_validity, coherence_local, coherence_global')
           .eq('essay_id', id),
       ])
-    setLoading(false)
-    if (e1 || e2 || e3 || e4) return toast((e1 || e2 || e3 || e4).message, 'error')
-
+    if (e1 || e2 || e3 || e4) {
+      toast((e1 || e2 || e3 || e4).message, 'error')
+      return null
+    }
     const labelColor = Object.fromEntries((labels || []).map((l) => [l.name, l.color]))
     const labelOrder = (labels || []).map((l) => l.name)
     const rubricByRater = Object.fromEntries((scores || []).map((s) => [s.user_id, s]))
@@ -66,8 +62,33 @@ export default function ComparisonTab() {
       name,
       color: RATER_COLORS[i % RATER_COLORS.length],
     }))
-    setData({ essay, allRaters, spansByRater, labelColor, labelOrder, rubricByRater })
+    return { essay, allRaters, spansByRater, labelColor, labelOrder, rubricByRater }
+  }, [])
+
+  async function loadEssay(id) {
+    setEssayId(id)
+    setData(null)
+    if (!id) return
+    setLoading(true)
+    const d = await fetchComparison(id)
+    setLoading(false)
+    if (d) setData(d)
   }
+
+  useEffect(() => {
+    loadEssays()
+  }, [loadEssays])
+
+  // Auto-refresh the essay dropdown and the open comparison (new annotations /
+  // rubric scores from raters) without a spinner flicker — an admin watching
+  // agreement sees it update live, no manual reload.
+  useAutoRefresh(async () => {
+    await loadEssays()
+    if (essayId) {
+      const d = await fetchComparison(essayId)
+      if (d) setData(d)
+    }
+  })
 
   if (!essays) return <div className="spinner" />
 

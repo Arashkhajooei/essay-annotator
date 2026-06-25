@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './lib/supabase.js'
 import { onToast } from './lib/toast.js'
+import { useAutoRefresh } from './lib/useAutoRefresh.js'
 import AuthScreen from './components/AuthScreen.jsx'
 import SetupScreen from './components/SetupScreen.jsx'
 import Sidebar from './components/Sidebar.jsx'
@@ -183,6 +184,12 @@ export default function App() {
       if (ok) loadProfile(session.user)
     })
   }, [session, checkSchema, loadProfile])
+
+  // Re-fetch the profile on focus/visibility so a role change (promote/demote) or
+  // display-name edit reaches an already-open tab without a manual reload.
+  useAutoRefresh(() => {
+    if (session?.user) loadProfile(session.user)
+  })
 
   if (!authReady) return <div className="spinner" />
   if (!session) return (
