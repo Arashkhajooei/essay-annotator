@@ -44,17 +44,49 @@ const RUNNING_BUILD = typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'
 function UpdateBanner() {
   const [latest, setLatest] = useState(null)
   useEffect(() => {
+    // Once we're actually running the build that the ?v= cache-buster pointed at,
+    // strip it so shared/bookmarked URLs stay clean and aren't pinned to one build.
+    try {
+      const sp = new URLSearchParams(window.location.search)
+      if (sp.get('v')) {
+        sp.delete('v')
+        const qs = sp.toString()
+        window.history.replaceState(null, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash)
+      }
+    } catch {
+      /* ignore */
+    }
+
     let alive = true
+    let inFlight = false
+    let lastCheck = 0
     const check = async () => {
+      // throttle + in-flight guard: at most one origin fetch per 30s, never overlapping
+      if (inFlight || Date.now() - lastCheck < 30000) return
+      inFlight = true
+      lastCheck = Date.now()
       try {
         const r = await fetch(new URL('version.json', document.baseURI).href + '?t=' + Date.now(), {
           cache: 'no-store',
         })
         if (!r.ok) return
         const { build } = await r.json()
-        if (alive && build && build !== RUNNING_BUILD) setLatest(build)
+        if (!alive || !build || build === RUNNING_BUILD) return
+        // Loop guard: if we already tried to reload to this exact build moments ago
+        // and the CDN hasn't propagated the new index.html yet (a plain hard-refresh
+        // during the deploy window can land us back on the old bundle), stay quiet
+        // until it does — don't nag in a loop.
+        try {
+          const [b, ts] = (sessionStorage.getItem('reloadAttempt') || '').split('|')
+          if (b === build && Date.now() - Number(ts) < 120000) return
+        } catch {
+          /* ignore */
+        }
+        setLatest(build)
       } catch {
         /* offline / version.json missing — ignore */
+      } finally {
+        inFlight = false
       }
     }
     check()
@@ -69,6 +101,11 @@ function UpdateBanner() {
   }, [])
   if (!latest) return null
   const reload = () => {
+    try {
+      sessionStorage.setItem('reloadAttempt', `${latest}|${Date.now()}`)
+    } catch {
+      /* ignore */
+    }
     const url = new URL(window.location.href)
     url.searchParams.set('v', latest) // cache-bust index.html so the new code loads
     window.location.replace(url.toString())
