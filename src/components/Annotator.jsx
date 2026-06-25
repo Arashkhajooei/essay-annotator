@@ -113,7 +113,7 @@ export default function Annotator({ essayId, user, isAdmin }) {
   // Skip while the tag palette is open so an in-progress annotation isn't disturbed.
   useAutoRefresh(() => {
     if (!palette) load()
-  })
+  }, 20000)
 
   const paragraphs = useMemo(() => (essay ? getParagraphs(essay.content) : []), [essay])
 

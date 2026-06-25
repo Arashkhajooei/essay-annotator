@@ -33,8 +33,9 @@ export default function EssayList({ user, isAdmin }) {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id])
-  // auto-refresh so new assignments appear without a manual reload
-  useAutoRefresh(load)
+  // auto-refresh so new assignments appear without a manual reload — poll every
+  // 15s (plus instantly on tab focus) so an assigned essay shows up quickly
+  useAutoRefresh(load, 15000)
 
   async function bulkImport(files) {
     const rows = files.map((f) => ({
