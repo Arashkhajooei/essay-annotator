@@ -1014,22 +1014,43 @@ input[type="color"].swatch-input {
 .cmp-print-portal { display: none; }
 
 @media print {
-  @page { size: A4 landscape; margin: 12mm; }
+  @page { size: A4 portrait; margin: 14mm; }
   html, body { background: #fff !important; }
   body > #root { display: none !important; }
-  .cmp-print-portal {
-    display: block !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    color: #111;
+
+  .cmp-print-portal { display: block !important; color: #111; font-size: 12px; }
+  .cmp-print-portal, .cmp-print-portal * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cmp-print-portal .cell-dim { color: #666 !important; }
+  .cmp-print-portal .pr-table td,
+  .cmp-print-portal .pr-essay,
+  .cmp-print-portal .diff-text,
+  .cmp-print-portal .cmp-rater-head { color: #111 !important; }
+
+  .cmp-print-portal .pr-title { font-size: 20px; font-weight: 800; margin: 0 0 14px; color: #111 !important; }
+  .cmp-print-portal .pr-section {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+    color: #222 !important; margin: 22px 0 9px; padding-bottom: 5px;
+    border-bottom: 1.5px solid #222; break-after: avoid;
   }
-  .cmp-print-portal .cmp-print-title,
-  .cmp-print-portal .cmp-print-metrics,
-  .cmp-print-portal .cmp-print-metrics b,
-  .cmp-print-portal .cmp-rater-head,
-  .cmp-print-portal .cmp-rubric-mini td,
-  .cmp-print-portal .cmp-essay { color: #111 !important; }
-  .cmp-print-portal .cmp-col { border: 1px solid #ccc; background: #fff; break-inside: avoid; }
-  .cmp-print-portal .cmp-essay { max-height: none !important; overflow: visible !important; }
-  .cmp-print-portal .hl { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cmp-print-portal .pr-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 2px; }
+  .cmp-print-portal .pr-table th {
+    text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: #999 !important; border-bottom: 1px solid #ccc; padding: 6px 8px;
+  }
+  .cmp-print-portal .pr-table td { padding: 7px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+
+  .cmp-print-portal .pr-rater-block { break-inside: avoid; margin-bottom: 18px; }
+  .cmp-print-portal .cmp-rater-head { font-size: 13px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 7px; }
+  .cmp-print-portal .cmp-rater-head .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .cmp-print-portal .pr-essay { font-size: 12.5px; line-height: 1.95; max-height: none !important; overflow: visible !important; margin-top: 4px; }
+  .cmp-print-portal .pr-essay p { margin: 0 0 0.9em; }
+
+  .cmp-print-portal .pr-diffs { display: flex; flex-direction: column; gap: 7px; }
+  .cmp-print-portal .diff-item {
+    break-inside: avoid; border: 1px solid #e6e6e6; border-left: 3px solid #b9c4d6;
+    border-radius: 6px; padding: 8px 11px; background: #fff;
+  }
+  .cmp-print-portal .diff-item.diff-gap { border-left-color: #e0a83a; }
+  .cmp-print-portal .diff-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 4px; }
+  .cmp-print-portal .diff-text { font-size: 12px; }
 }

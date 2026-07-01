@@ -253,15 +253,9 @@ function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder
             raters={raters}
             spansByRater={spansByRater}
             labelColor={labelColor}
-            labelOrder={labelOrder}
             rubricByRater={rubricByRater}
-            summary={{
-              overall: comparison.overall,
-              overallLabeled: comparison.overallLabeled,
-              kappa: comparison.kappa,
-              kappaName: comparison.kappaName,
-              scoreSpread,
-            }}
+            comparison={comparison}
+            scoreSpread={scoreSpread}
           />
 
           <div className="panel-card" style={{ marginBottom: 18 }}>
@@ -411,81 +405,166 @@ function AgreeChip({ v }) {
   return <span className={`chip ${cls}`}>{Math.round(v * 100)}%</span>
 }
 
-function PrintBody({ essay, raters, spansByRater, labelColor, labelOrder, rubricByRater, summary }) {
+function PrintBody({ essay, raters, spansByRater, labelColor, rubricByRater, comparison, scoreSpread }) {
   const paras = useMemo(() => getParagraphs(essay.content), [essay])
+  const dis = (comparison && comparison.disagreements) || []
   return (
     <>
-      <div className="cmp-print-title">{essay.title}</div>
-      {summary && (
-        <div className="cmp-print-metrics">
-          <span>
-            Overall agreement <b>{pct(summary.overall)}</b>
+      <h1 className="pr-title">{essay.title}</h1>
+
+      <h2 className="pr-section">Scoring &amp; evaluation</h2>
+      <table className="table pr-table">
+        <thead>
+          <tr>
+            <th>Rater</th>
+            <th>Score</th>
+            <th>Prompt adherence</th>
+            <th>Task validity</th>
+            <th>Coherence · local</th>
+            <th>Coherence · global</th>
+          </tr>
+        </thead>
+        <tbody>
+          {raters.map((r) => {
+            const rb = rubricByRater[r.id] || {}
+            return (
+              <tr key={r.id}>
+                <td>
+                  <span className="legend-chip" style={{ '--c': r.color }}>
+                    <span className="dot" />
+                    {r.name}
+                  </span>
+                </td>
+                <td>{rb.score ?? 'N/A'}</td>
+                <td>{rb.prompt_adherence ?? 'N/A'}</td>
+                <td>{rb.task_validity ?? 'N/A'}</td>
+                <td>{boolLabel(rb.coherence_local)}</td>
+                <td>{boolLabel(rb.coherence_global)}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {scoreSpread != null && (
+        <div style={{ marginTop: 8 }}>
+          <span className={`chip ${scoreSpread === 0 ? 'green' : scoreSpread <= 1 ? 'amber' : 'red'}`}>
+            score {scoreSpread === 0 ? 'exact match' : `range ${scoreSpread}`}
           </span>
-          <span>
-            On labeled text <b>{pct(summary.overallLabeled)}</b>
-          </span>
-          <span>
-            {summary.kappaName || 'κ'} <b>{kap(summary.kappa)}</b>
-          </span>
-          {summary.scoreSpread != null && (
-            <span>
-              Score{' '}
-              <b>{summary.scoreSpread === 0 ? 'exact match' : `range ${summary.scoreSpread}`}</b>
-            </span>
-          )}
         </div>
       )}
-      {labelOrder.length > 0 && (
-        <div className="legend" style={{ marginBottom: 14 }}>
-          {labelOrder.map((name) => (
-            <span key={name} className="legend-chip" style={{ '--c': labelColor[name] || '#888' }}>
-              <span className="dot" />
-              {name}
-            </span>
-          ))}
-        </div>
-      )}
-      <div
-        className="cmp-columns"
-        style={{ gridTemplateColumns: `repeat(${raters.length}, minmax(0, 1fr))` }}
-      >
-        {raters.map((r) => {
-          const rb = rubricByRater[r.id] || {}
-          const spans = spansByRater[r.id] || []
-          return (
-            <div key={r.id} className="cmp-col">
-              <div className="cmp-rater-head" style={{ fontSize: 13 }}>
-                <span className="dot" style={{ background: r.color }} />
-                {r.name}
-                <span className="cell-dim" style={{ fontWeight: 400, marginLeft: 4 }}>
-                  · {spans.length} moves
-                </span>
-              </div>
-              <table className="cmp-rubric-mini">
+
+      <h2 className="pr-section">Annotation</h2>
+      {raters.map((r) => {
+        const rb = rubricByRater[r.id] || {}
+        const spans = spansByRater[r.id] || []
+        return (
+          <div key={r.id} className="pr-rater-block">
+            <div className="cmp-rater-head">
+              <span className="dot" style={{ background: r.color }} />
+              {r.name}
+              {rb.score != null && <span className="cell-dim"> · score {rb.score}</span>}
+              <span className="cell-dim" style={{ fontWeight: 400 }}> · {spans.length} moves</span>
+            </div>
+            <div className="essay-text cmp-essay pr-essay">
+              {paras.map((p, i) => (
+                <RaterParagraph
+                  key={i}
+                  para={p}
+                  text={essay.content}
+                  spans={spans}
+                  labelColor={labelColor}
+                />
+              ))}
+            </div>
+          </div>
+        )
+      })}
+
+      {comparison && (
+        <>
+          <h2 className="pr-section">Per-label agreement</h2>
+          <table className="table pr-table">
+            <thead>
+              <tr>
+                <th>Label</th>
+                {raters.map((r) => (
+                  <th key={r.id}>{r.name}</th>
+                ))}
+                <th>Overlap (Jaccard)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.perLabel.map((row) => (
+                <tr key={row.label}>
+                  <td>
+                    <span className="legend-chip" style={{ '--c': labelColor[row.label] || '#888' }}>
+                      <span className="dot" />
+                      {row.label}
+                    </span>
+                  </td>
+                  {raters.map((r) => (
+                    <td key={r.id}>{row.counts[r.id] || 0}</td>
+                  ))}
+                  <td>
+                    <AgreeChip v={row.jaccard} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {raters.length > 2 && (
+            <>
+              <h2 className="pr-section">Pairwise agreement</h2>
+              <table className="table pr-table">
+                <thead>
+                  <tr>
+                    <th>Rater A</th>
+                    <th>Rater B</th>
+                    <th>Agreement</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  {RUBRIC_ROWS.map(([label, get]) => (
-                    <tr key={label}>
-                      <td>{label}</td>
-                      <td>{get(rb)}</td>
+                  {comparison.pairwise.map((p, i) => (
+                    <tr key={i}>
+                      <td>{raterName(raters, p.a)}</td>
+                      <td>{raterName(raters, p.b)}</td>
+                      <td>
+                        <AgreeChip v={p.agreement} />
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div className="essay-text cmp-essay">
-                {paras.map((p, i) => (
-                  <RaterParagraph
-                    key={i}
-                    para={p}
-                    text={essay.content}
-                    spans={spans}
-                    labelColor={labelColor}
-                  />
-                ))}
-              </div>
+            </>
+          )}
+
+          <h2 className="pr-section">Review — where they differ ({dis.length})</h2>
+          {dis.length === 0 ? (
+            <div className="cell-dim" style={{ fontSize: 13 }}>
+              No disagreements — raters tagged the same text with the same labels.
             </div>
-          )
-        })}
-      </div>
+          ) : (
+            <div className="pr-diffs">
+              {dis.map((d, i) => (
+                <div key={i} className={`diff-item diff-${d.state}`}>
+                  <div className="diff-meta">
+                    <span className={`chip ${d.state === 'gap' ? 'amber' : 'blue'}`}>
+                      {d.state === 'gap' ? 'miss / extra' : 'different label'}
+                    </span>
+                    {raters.map((r) => (
+                      <span key={r.id} className="diff-rater">
+                        <b style={{ color: r.color }}>{r.name}:</b> {d.perRater[r.id] || '—'}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="diff-text">“{d.text.trim()}”</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </>
   )
 }
@@ -505,12 +584,17 @@ function SideBySide(props) {
   return (
     <div className="panel-card" style={{ marginBottom: 18 }}>
       <div className="cmp-print-bar">
-        <h3 style={{ margin: 0 }}>Side-by-side</h3>
+        <div>
+          <h3 style={{ margin: 0 }}>Export comparison as PDF</h3>
+          <div className="cell-dim" style={{ fontSize: 12, marginTop: 3, maxWidth: 580 }}>
+            One document: rubric scores, each rater&apos;s annotated essay, per-label &amp; pairwise
+            agreement, and every disagreement.
+          </div>
+        </div>
         <button className="btn" onClick={doExport}>
           📄 Export PDF
         </button>
       </div>
-      <PrintBody {...props} />
       {printing &&
         createPortal(
           <div className="cmp-print-portal">
