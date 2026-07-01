@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import { toast } from '../lib/toast.js'
 import { computeComparison, getParagraphs } from '../lib/agreement.js'
 import { useAutoRefresh } from '../lib/useAutoRefresh.js'
+import { createPortal } from 'react-dom'
 
 const RATER_COLORS = ['#7da6f2', '#f472b6', '#4ade80', '#fcd34d', '#c084fc', '#2dd4bf', '#fb923c', '#60a5fa']
 const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`)
@@ -410,16 +411,10 @@ function AgreeChip({ v }) {
   return <span className={`chip ${cls}`}>{Math.round(v * 100)}%</span>
 }
 
-function SideBySide({ essay, raters, spansByRater, labelColor, labelOrder, rubricByRater, summary }) {
+function PrintBody({ essay, raters, spansByRater, labelColor, labelOrder, rubricByRater, summary }) {
   const paras = useMemo(() => getParagraphs(essay.content), [essay])
   return (
-    <div className="panel-card cmp-print-area" style={{ marginBottom: 18 }}>
-      <div className="cmp-print-bar no-print">
-        <h3 style={{ margin: 0 }}>Side-by-side</h3>
-        <button className="btn" onClick={() => window.print()}>
-          📄 Export PDF
-        </button>
-      </div>
+    <>
       <div className="cmp-print-title">{essay.title}</div>
       {summary && (
         <div className="cmp-print-metrics">
@@ -430,7 +425,7 @@ function SideBySide({ essay, raters, spansByRater, labelColor, labelOrder, rubri
             On labeled text <b>{pct(summary.overallLabeled)}</b>
           </span>
           <span>
-            {summary.kappaName || 'κ'} <b>{kap(summary.kappa)}</b>
+            {summary.kappaName || 'Îº'} <b>{kap(summary.kappa)}</b>
           </span>
           {summary.scoreSpread != null && (
             <span>
@@ -463,7 +458,7 @@ function SideBySide({ essay, raters, spansByRater, labelColor, labelOrder, rubri
                 <span className="dot" style={{ background: r.color }} />
                 {r.name}
                 <span className="cell-dim" style={{ fontWeight: 400, marginLeft: 4 }}>
-                  · {spans.length} moves
+                  Â· {spans.length} moves
                 </span>
               </div>
               <table className="cmp-rubric-mini">
@@ -491,9 +486,42 @@ function SideBySide({ essay, raters, spansByRater, labelColor, labelOrder, rubri
           )
         })}
       </div>
+    </>
+  )
+}
+
+function SideBySide(props) {
+  const [printing, setPrinting] = useState(false)
+  const doExport = () => {
+    setPrinting(true)
+    const done = () => {
+      setPrinting(false)
+      window.removeEventListener('afterprint', done)
+    }
+    window.addEventListener('afterprint', done)
+    // let the print-only portal mount before opening the browser print dialog
+    setTimeout(() => window.print(), 60)
+  }
+  return (
+    <div className="panel-card" style={{ marginBottom: 18 }}>
+      <div className="cmp-print-bar">
+        <h3 style={{ margin: 0 }}>Side-by-side</h3>
+        <button className="btn" onClick={doExport}>
+          📄 Export PDF
+        </button>
+      </div>
+      <PrintBody {...props} />
+      {printing &&
+        createPortal(
+          <div className="cmp-print-portal">
+            <PrintBody {...props} />
+          </div>,
+          document.body
+        )}
     </div>
   )
 }
+
 
 function OverlayParagraph({ para, text, segments, raters }) {
   const nodes = []
