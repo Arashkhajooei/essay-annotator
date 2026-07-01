@@ -425,7 +425,7 @@ function PrintBody({ essay, raters, spansByRater, labelColor, labelOrder, rubric
             On labeled text <b>{pct(summary.overallLabeled)}</b>
           </span>
           <span>
-            {summary.kappaName || 'Îº'} <b>{kap(summary.kappa)}</b>
+            {summary.kappaName || 'κ'} <b>{kap(summary.kappa)}</b>
           </span>
           {summary.scoreSpread != null && (
             <span>
@@ -458,7 +458,7 @@ function PrintBody({ essay, raters, spansByRater, labelColor, labelOrder, rubric
                 <span className="dot" style={{ background: r.color }} />
                 {r.name}
                 <span className="cell-dim" style={{ fontWeight: 400, marginLeft: 4 }}>
-                  Â· {spans.length} moves
+                  · {spans.length} moves
                 </span>
               </div>
               <table className="cmp-rubric-mini">
