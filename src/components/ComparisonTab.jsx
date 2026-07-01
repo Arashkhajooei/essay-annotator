@@ -9,6 +9,15 @@ const pct = (x) => (x == null ? '—' : `${Math.round(x * 100)}%`)
 const kap = (x) => (x == null ? '—' : x.toFixed(3))
 const boolLabel = (b) => (b === true ? 'Yes' : b === false ? 'No' : 'N/A')
 
+// rows of the compact per-rater rubric shown in each side-by-side column
+const RUBRIC_ROWS = [
+  ['Holistic score', (rb) => rb.score ?? 'N/A'],
+  ['Prompt adherence', (rb) => rb.prompt_adherence ?? 'N/A'],
+  ['Task validity', (rb) => rb.task_validity ?? 'N/A'],
+  ['Coherence · local', (rb) => boolLabel(rb.coherence_local)],
+  ['Coherence · global', (rb) => boolLabel(rb.coherence_global)],
+]
+
 export default function ComparisonTab() {
   const [essays, setEssays] = useState(null)
   const [essayId, setEssayId] = useState('')
@@ -238,6 +247,22 @@ function ComparisonView({ essay, allRaters, spansByRater, labelColor, labelOrder
             )}
           </div>
 
+          <SideBySide
+            essay={essay}
+            raters={raters}
+            spansByRater={spansByRater}
+            labelColor={labelColor}
+            labelOrder={labelOrder}
+            rubricByRater={rubricByRater}
+            summary={{
+              overall: comparison.overall,
+              overallLabeled: comparison.overallLabeled,
+              kappa: comparison.kappa,
+              kappaName: comparison.kappaName,
+              scoreSpread,
+            }}
+          />
+
           <div className="panel-card" style={{ marginBottom: 18 }}>
             <h3>Agreement overlay</h3>
             <div className="agr-legend">
@@ -383,6 +408,91 @@ function AgreeChip({ v }) {
   if (v == null) return <span className="cell-dim">—</span>
   const cls = v >= 0.8 ? 'green' : v >= 0.5 ? 'amber' : 'red'
   return <span className={`chip ${cls}`}>{Math.round(v * 100)}%</span>
+}
+
+function SideBySide({ essay, raters, spansByRater, labelColor, labelOrder, rubricByRater, summary }) {
+  const paras = useMemo(() => getParagraphs(essay.content), [essay])
+  return (
+    <div className="panel-card cmp-print-area" style={{ marginBottom: 18 }}>
+      <div className="cmp-print-bar no-print">
+        <h3 style={{ margin: 0 }}>Side-by-side</h3>
+        <button className="btn" onClick={() => window.print()}>
+          📄 Export PDF
+        </button>
+      </div>
+      <div className="cmp-print-title">{essay.title}</div>
+      {summary && (
+        <div className="cmp-print-metrics">
+          <span>
+            Overall agreement <b>{pct(summary.overall)}</b>
+          </span>
+          <span>
+            On labeled text <b>{pct(summary.overallLabeled)}</b>
+          </span>
+          <span>
+            {summary.kappaName || 'κ'} <b>{kap(summary.kappa)}</b>
+          </span>
+          {summary.scoreSpread != null && (
+            <span>
+              Score{' '}
+              <b>{summary.scoreSpread === 0 ? 'exact match' : `range ${summary.scoreSpread}`}</b>
+            </span>
+          )}
+        </div>
+      )}
+      {labelOrder.length > 0 && (
+        <div className="legend" style={{ marginBottom: 14 }}>
+          {labelOrder.map((name) => (
+            <span key={name} className="legend-chip" style={{ '--c': labelColor[name] || '#888' }}>
+              <span className="dot" />
+              {name}
+            </span>
+          ))}
+        </div>
+      )}
+      <div
+        className="cmp-columns"
+        style={{ gridTemplateColumns: `repeat(${raters.length}, minmax(0, 1fr))` }}
+      >
+        {raters.map((r) => {
+          const rb = rubricByRater[r.id] || {}
+          const spans = spansByRater[r.id] || []
+          return (
+            <div key={r.id} className="cmp-col">
+              <div className="cmp-rater-head" style={{ fontSize: 13 }}>
+                <span className="dot" style={{ background: r.color }} />
+                {r.name}
+                <span className="cell-dim" style={{ fontWeight: 400, marginLeft: 4 }}>
+                  · {spans.length} moves
+                </span>
+              </div>
+              <table className="cmp-rubric-mini">
+                <tbody>
+                  {RUBRIC_ROWS.map(([label, get]) => (
+                    <tr key={label}>
+                      <td>{label}</td>
+                      <td>{get(rb)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="essay-text cmp-essay">
+                {paras.map((p, i) => (
+                  <RaterParagraph
+                    key={i}
+                    para={p}
+                    text={essay.content}
+                    spans={spans}
+                    labelColor={labelColor}
+                  />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function OverlayParagraph({ para, text, segments, raters }) {

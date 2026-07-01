@@ -997,3 +997,33 @@ input[type="color"].swatch-input {
 /* reference metadata (from bulk CSV import) on the annotation page */
 .essay-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin: 0 0 22px; }
 .essay-meta span { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; color: var(--text-3); font-size: 11.5px; }
+
+
+/* ---------- side-by-side comparison + PDF export ---------- */
+.cmp-print-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.cmp-print-title { font-size: 18px; font-weight: 700; color: var(--text-bright); margin-bottom: 8px; }
+.cmp-print-metrics { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px; font-size: 12px; color: var(--text-2); }
+.cmp-print-metrics b { color: var(--text-bright); font-weight: 600; }
+.cmp-columns { display: grid; gap: 16px; align-items: start; }
+.cmp-col { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface); min-width: 0; }
+.cmp-rubric-mini { width: 100%; border-collapse: collapse; margin: 8px 0 6px; font-size: 12px; }
+.cmp-rubric-mini td { padding: 3px 4px; border-bottom: 1px solid var(--border-soft); }
+.cmp-rubric-mini td:first-child { color: var(--text-3); }
+.cmp-rubric-mini td:last-child { text-align: right; font-weight: 600; color: var(--text-bright); }
+
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+  html, body { background: #fff !important; }
+  body * { visibility: hidden !important; }
+  .cmp-print-area, .cmp-print-area * { visibility: visible !important; }
+  .cmp-print-area {
+    position: absolute; left: 0; top: 0; width: 100%;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .cmp-print-area, .cmp-print-title, .cmp-print-metrics, .cmp-print-metrics b,
+  .cmp-rater-head, .cmp-rubric-mini td, .cmp-essay { color: #111 !important; }
+  .cmp-print-area .no-print { display: none !important; }
+  .cmp-print-area .cmp-col { border: 1px solid #ccc; background: #fff; break-inside: avoid; }
+  .cmp-print-area .cmp-essay { max-height: none !important; overflow: visible !important; }
+  .cmp-print-area .hl { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
