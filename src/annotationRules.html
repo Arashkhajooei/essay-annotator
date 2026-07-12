@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RITA Annotation Rules</title>
+<style>
+  :root{
+    --ink:#1f2430; --muted:#5b6472; --line:#e3e7ee; --bg:#f7f8fb; --card:#ffffff;
+    --led:#B7791F;  --led-bg:#FBEFCB;
+    --pos:#2563EB;  --pos-bg:#DBE7FE;
+    --clm:#12885A;  --clm-bg:#CFF3E2;
+    --ctr:#7C3AED;  --ctr-bg:#EADFFC;
+    --reb:#D9480F;  --reb-bg:#FBE0CF;
+    --evd:#0E7C90;  --evd-bg:#CFEDF3;
+    --con:#C2255C;  --con-bg:#FBD8E4;
+    --una:#64748B;  --una-bg:#E7ECF2;
+    --z-intro:#4F46E5; --z-body:#12885A; --z-concl:#C2255C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px 60px}
+  header{margin-bottom:18px}
+  h1{font-size:20px;margin:0 0 2px;letter-spacing:-.2px}
+  .sub{color:var(--muted);font-size:13px}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);
+    margin:30px 0 12px;font-weight:700}
+
+  .tag{display:inline-block;padding:1px 7px;border-radius:5px;font-weight:700;
+    font-size:12px;line-height:1.6;white-space:nowrap}
+  .reason{font-weight:700;text-decoration:underline}
+  .rel{color:#AAB1BD;font-size:12.5px;margin-left:8px;white-space:nowrap}
+  .nestwrap{margin:16px 2px 4px}
+  .nestwrap svg{width:100%;height:auto}
+  .nestcap{color:var(--muted);font-size:12.5px;margin-top:10px;text-align:center}
+  .t-led{background:var(--led-bg);color:var(--led)}
+  .t-pos{background:var(--pos-bg);color:var(--pos)}
+  .t-clm{background:var(--clm-bg);color:var(--clm)}
+  .t-ctr{background:var(--ctr-bg);color:var(--ctr)}
+  .t-reb{background:var(--reb-bg);color:var(--reb)}
+  .t-evd{background:var(--evd-bg);color:var(--evd)}
+  .t-con{background:var(--con-bg);color:var(--con)}
+  .t-una{background:var(--una-bg);color:var(--una)}
+
+  /* zones */
+  .zones{display:flex;flex-direction:column;gap:6px}
+  .zone{border-radius:14px;padding:12px 14px 14px;border:1px solid}
+  .zone-intro{background:rgba(79,70,229,.06);border-color:rgba(79,70,229,.22)}
+  .zone-body{background:rgba(18,136,90,.06);border-color:rgba(18,136,90,.22)}
+  .zone-concl{background:rgba(194,37,92,.06);border-color:rgba(194,37,92,.22)}
+  .zone-label{display:flex;align-items:center;gap:8px;font-size:11px;text-transform:uppercase;
+    letter-spacing:.12em;font-weight:700;margin:2px 2px 10px}
+  .zone-intro .zone-label{color:var(--z-intro)}
+  .zone-body .zone-label{color:var(--z-body)}
+  .zone-concl .zone-label{color:var(--z-concl)}
+  .zone-num{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:11px;color:#fff;flex:0 0 18px}
+  .zone-intro .zone-num{background:var(--z-intro)}
+  .zone-body .zone-num{background:var(--z-body)}
+  .zone-concl .zone-num{background:var(--z-concl)}
+  .zone-hint{font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted);font-size:11px}
+
+  .zgrid{display:grid;gap:8px}
+  .zgrid.two{grid-template-columns:repeat(2,1fr)}
+  .zgrid.one{grid-template-columns:1fr}
+
+  .code{background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;display:flex;gap:10px;align-items:flex-start}
+  .code .swatch{width:8px;align-self:stretch;border-radius:4px;flex:0 0 8px}
+  .s-led{background:var(--led)} .s-pos{background:var(--pos)} .s-clm{background:var(--clm)}
+  .s-ctr{background:var(--ctr)} .s-reb{background:var(--reb)} .s-evd{background:var(--evd)}
+  .s-con{background:var(--con)} .s-una{background:var(--una)}
+  .code b{font-size:13px}
+  .code .fn{color:var(--muted);font-size:12.5px}
+  .code .loc{color:var(--muted);font-size:11.5px;margin-top:3px;font-style:italic}
+  .code .txt{flex:1}
+  .zicon{flex:0 0 54px;width:54px;height:54px;align-self:center}
+
+  .flow-arrow{text-align:center;color:var(--muted);font-size:15px;line-height:1;margin:2px 0}
+  .anywhere{margin-top:8px}
+  .divider{height:1px;background:var(--line);border:0;margin:34px 0 4px}
+  .callout{background:#FDF3D0;border:1.5px solid #E3C878;border-radius:12px;
+    padding:18px 22px;margin:6px 2px;font-size:14.5px;line-height:1.55;color:#4a4636;
+    display:flex;gap:14px;align-items:flex-start}
+  .callout .key{flex:0 0 auto;font-size:12px;font-weight:700;text-transform:uppercase;
+    letter-spacing:.1em;color:#B7791F;padding-top:2px}
+  .callout .lines > div{margin:0}
+  .callout .lines > div + div{margin-top:9px;padding-top:9px;border-top:1px dashed #E3C878}
+  .callout-rel{background:#F1F3F6;border:1.5px solid #D6DBE2}
+  .callout-rel .key{color:#5b6472}
+  .callout-rel .lines > div + div{border-top:1px dashed #D6DBE2}
+  .crown{height:22px;width:auto;vertical-align:-6px;margin-right:6px}
+  .loc .tw{font-size:13.5px;font-weight:700;font-style:normal;color:#B7791F}
+
+  /* clean row block (quick tests + decision flow) */
+  .block{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 18px}
+  .lead-in{color:var(--muted);font-size:13px;margin:12px 2px}
+  .row{display:flex;gap:14px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .ifq{flex:1;font-size:13.5px}
+  .row .ifq .lead-word{font-weight:700}
+  .row .then{flex:0 0 auto;text-align:right}
+  .row .n{flex:0 0 22px;height:22px;border-radius:50%;background:var(--ink);color:#fff;
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;
+    align-self:center}
+  .note{color:var(--muted);font-size:12px;margin:12px 2px 4px}
+
+  @media (max-width:640px){ .zgrid.two{grid-template-columns:1fr} }
+  @media print{
+    body{background:#fff}
+    .code,.block,.zone{break-inside:avoid}
+    h2{margin-top:20px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>RITA Annotation Rules</h1>
+  <div class="sub">Tag by what the text <b>does</b> in its paragraph, not by its words. One sentence can hold two tags.</div>
+</header>
+
+<h2>The 8 codes &mdash; grouped by where they happen</h2>
+<div class="zones">
+
+  <!-- INTRODUCTION -->
+  <div class="zone zone-intro">
+    <div class="zone-label"><span class="zone-num">1</span> Introduction <span class="zone-hint">&mdash; how the essay opens</span></div>
+    <div class="zgrid two">
+      <div class="code"><div class="swatch s-led"></div><div><b><span class="tag t-led">LED</span> Lead</b><div class="fn">Hook that grabs attention, <b>takes no side yet.</b></div></div></div>
+      <div class="code"><div class="swatch s-pos"></div><div class="txt"><b><span class="tag t-pos">POS</span> Position</b><div class="fn">The writer's overall stance on the prompt.</div><div class="loc"><svg class="crown" viewBox="0 0 66 54" role="img" aria-label="crown"><path d="M7 45 L14 19 L24 31 L33 10 L42 31 L52 19 L59 45 Z" fill="#D9A21E" stroke="#8A5E14" stroke-width="2.4" stroke-linejoin="round"/><rect x="9" y="40" width="48" height="10" rx="3" fill="#D9A21E" stroke="#8A5E14" stroke-width="2.4"/><circle cx="14" cy="16" r="3.4" fill="#D9A21E" stroke="#8A5E14" stroke-width="2"/><circle cx="33" cy="7" r="3.6" fill="#D9A21E" stroke="#8A5E14" stroke-width="2"/><circle cx="52" cy="16" r="3.4" fill="#D9A21E" stroke="#8A5E14" stroke-width="2"/></svg>The <span class="tw">thesis</span> &mdash; <b>just one</b></div></div><svg class="zicon" viewBox="0 0 62 60" role="img" aria-label="Same fan with two greyed arrows and one taller colored arrow chosen"><g stroke-linecap="butt" stroke-linejoin="round"><line x1="31" y1="52" x2="14" y2="25" stroke="#C4CCD8" stroke-width="5"/><path d="M8 32 L14 20 L20 32 Z" fill="#C4CCD8" stroke="#C4CCD8" stroke-width="1.5" transform="rotate(-31,14,25)"/><line x1="31" y1="52" x2="48" y2="25" stroke="#C4CCD8" stroke-width="5"/><path d="M42 32 L48 20 L54 32 Z" fill="#C4CCD8" stroke="#C4CCD8" stroke-width="1.5" transform="rotate(31,48,25)"/><line x1="31" y1="52" x2="31" y2="9" stroke="#12B3C0" stroke-width="7"/><path d="M23 17 L31 2 L39 17 Z" fill="#12B3C0" stroke="#12B3C0" stroke-width="2"/></g><circle cx="31" cy="52" r="4" fill="#6B7280"/></svg></div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">&darr;</div>
+
+  <!-- BODY -->
+  <div class="zone zone-body">
+    <div class="zone-label"><span class="zone-num">2</span> Body paragraphs <span class="zone-hint">&mdash; the argument is built here</span></div>
+    <div class="zgrid two">
+      <div class="code"><div class="swatch s-clm"></div><div><b><span class="tag t-clm">CLM</span> Claim</b><div class="fn">A <span class="reason">reason</span> that supports the Position.</div></div></div>
+      <div class="code"><div class="swatch s-evd"></div><div><b><span class="tag t-evd">EVD</span> Evidence</b><div class="fn"><b>Facts</b>, <b>examples</b>, <b>anecdotes (personal examples)</b>, <b>source material</b>, <b>elaboration</b>, <b>citation</b>.</div><div class="loc">Backs a claim</div></div></div>
+      <div class="code"><div class="swatch s-ctr"></div><div><b><span class="tag t-ctr">CTR</span> Counterclaim</b><div class="fn">A <span class="reason">reason</span> for the opposing side.</div></div></div>
+      <div class="code"><div class="swatch s-reb"></div><div><b><span class="tag t-reb">REB</span> Rebuttal</b><div class="fn">Attacks the Counterclaim.</div><div class="loc">Needs a CTR first</div></div></div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">&darr;</div>
+
+  <!-- CONCLUSION -->
+  <div class="zone zone-concl">
+    <div class="zone-label"><span class="zone-num">3</span> Conclusion <span class="zone-hint">&mdash; the last paragraph</span></div>
+    <div class="zgrid one">
+      <div class="code"><div class="swatch s-con"></div><div><b><span class="tag t-con">CON</span> Conclusion</b><div class="fn">Restates the position and claims.</div></div></div>
+    </div>
+  </div>
+
+  <!-- ANYWHERE -->
+  <div class="anywhere">
+    <div class="zgrid one">
+      <div class="code"><div class="swatch s-una"></div><div><b><span class="tag t-una">UNA</span> Unannotated</b><div class="fn">No argumentative work &mdash; transitions, filler. Can appear anywhere.</div></div></div>
+    </div>
+  </div>
+
+</div>
+
+<hr class="divider">
+<div class="callout"><span class="key">Key rules</span><div class="lines"><div><b>1. Lead is the opening hook.</b> Does it grab attention and take no side? Mark it as <span style="color:var(--led);font-weight:700">Lead</span>. It usually appears in the first or second sentence of the writing.</div><div><b>2. A restated prompt is not a Lead.</b> Ask: did the writer invent this to hook me, or just echo the prompt? An invented hook is <span style="color:var(--led);font-weight:700">Lead</span>. Just echoing the prompt question is <span style="color:var(--una);font-weight:700">Unannotated</span>.</div><div><b>3. Lead ends where the stance begins.</b> Lead ends the moment a stance appears. Split the sentence: the hook is <span style="color:var(--led);font-weight:700">Lead</span>, the stance is <span style="color:var(--pos);font-weight:700">Position</span>.</div><div><b>4. One position per essay.</b> Every essay states its position once, in the introduction or opening lines. That is the thesis. If the same stance appears again later in restated or paraphrased form, do not tag a second <span style="color:var(--pos);font-weight:700">Position</span>. A restated position in the conclusion is simply the <span style="color:var(--con);font-weight:700">Conclusion</span>.</div><div><b>5. &quot;It depends&quot; is still a Position.</b> Sometimes the writer does not pick a firm yes or no. They say &quot;it depends&quot; or &quot;sometimes yes, sometimes no.&quot; That is still their <span style="color:var(--pos);font-weight:700">Position</span>. Tag it as Position.</div><div><b>6. Claim or Evidence?</b> A <span style="color:var(--clm);font-weight:700">Claim</span> is something you can argue. <span style="color:var(--evd);font-weight:700">Evidence</span> is something you can check. Both in one sentence? Tag two.<br><span style="color:var(--muted)">Example:</span> "The internet makes life easier" is a <span style="color:var(--clm);font-weight:700">Claim</span>. "Over 5 billion people use the internet" is <span style="color:var(--evd);font-weight:700">Evidence</span>.</div><div><b>7. What counts as Evidence.</b> Is it a fact, an example, mentioned source material, detail and elaboration, or a citation? All of these are tagged as <span style="color:var(--evd);font-weight:700">Evidence</span>.</div><div><b>8. Evidence attaches to a claim.</b> <span style="color:var(--evd);font-weight:700">Evidence</span> with no explicit claim attaches to the nearest <span style="color:var(--clm);font-weight:700">Claim</span>. If none is present, attach it to the <span style="color:var(--pos);font-weight:700">Position</span>.</div><div><b>9. Each claim is unique.</b> An essay can have many claims, but each is a distinct point made once. If you see a claim repeated, paraphrased, or restated elsewhere, do not tag it as a new <span style="color:var(--clm);font-weight:700">Claim</span>. Mark the repeat as <span style="color:var(--una);font-weight:700">Unannotated</span>.</div><div><b>10. Tag each point only once.</b> When you tag a <span style="color:var(--clm);font-weight:700">Claim</span>, <span style="color:var(--ctr);font-weight:700">Counterclaim</span>, or <span style="color:var(--pos);font-weight:700">Position</span>, tag it only once, where it first appears. If the writer says that same idea again later, even in different words, do not give it a new tag. Leave the repeat as <span style="color:var(--una);font-weight:700">Unannotated</span>. Only a genuinely new point gets its own tag.</div><div><b>11. You see a claim/<span class="reason">reason</span>? check the side.</b> Whose side is it on? The writer's side is a <span style="color:var(--clm);font-weight:700">Claim</span>. The opposing side, not the writer's, is a <span style="color:var(--ctr);font-weight:700">Counterclaim</span>.</div><div><b>12. Does it reply to the opposing side?</b> A sentence that answers a Counterclaim and pushes back against it is a <span style="color:var(--reb);font-weight:700">Rebuttal</span>. It always comes right after a <span style="color:var(--ctr);font-weight:700">Counterclaim</span>.<br><span style="color:var(--reb);font-weight:700">Rebuttal</span> attacks a <span style="color:var(--ctr);font-weight:700">Counterclaim</span>.</div><div><b>13. Rebuttal only weakens the counterclaim.</b> A fresh reason for the writer's own side is a <span style="color:var(--clm);font-weight:700">Claim</span>, not a <span style="color:var(--reb);font-weight:700">Rebuttal</span>, even when it sits right after a <span style="color:var(--ctr);font-weight:700">Counterclaim</span>.</div><div><b>14. Not every Counterclaim needs a Rebuttal.</b> A <span style="color:var(--ctr);font-weight:700">Counterclaim</span> can stand alone. If the writer raises the other side but never answers it, leave it as a Counterclaim only.</div><div><b>15. Conclusions are wrap-ups.</b> Predictions, rhetorical questions, and recommendations in the closing lines add no new argument. They are just wrap-up, so keep them <span style="color:var(--una);font-weight:700">Unannotated</span>. Only the restated position and claims in the final paragraph are tagged as <span style="color:var(--con);font-weight:700">Conclusion</span>.</div><div><b>16. No rhetorical or argumentative role?</b> If a span does no argumentative work, connectors, filler, a restated prompt, or a repeat, mark it as <span style="color:var(--una);font-weight:700">Unannotated</span>.</div></div></div>
+
+<hr class="divider">
+<h2>How the parts connect</h2>
+<div class="callout callout-rel"><span class="key">Parent &rarr; Child</span><div class="lines"><div>The claim supports the position. <span class="rel">Position &rarr; Claim</span></div><div>The counterclaim argues against the position. <span class="rel">Position &rarr; Counterclaim</span></div><div>The evidence backs up the claim. <span class="rel">Claim &rarr; Evidence</span></div><div>The rebuttal answers the counterclaim. <span class="rel">Counterclaim &rarr; Rebuttal</span></div><div>The evidence backs up the counterclaim. <span class="rel">Counterclaim &rarr; Evidence</span></div><div>The evidence backs up the rebuttal. <span class="rel">Rebuttal &rarr; Evidence</span></div></div></div>
+<div class="nestwrap"><svg viewBox="0 0 680 190" role="img" aria-label="Nested boxes: each child sits inside its parent"><g font-family="system-ui,sans-serif" font-weight="600"><rect x="16" y="30" width="648" height="150" rx="12" fill="#EEF3FE" stroke="#2563EB" stroke-width="1.6"/><text x="32" y="52" font-size="14" fill="#1D4FC4">Position</text><rect x="32" y="62" width="312" height="106" rx="10" fill="#E4F6EC" stroke="#12885A" stroke-width="1.4"/><text x="46" y="83" font-size="13" fill="#0E6E49">Claim</text><rect x="46" y="94" width="168" height="60" rx="8" fill="#E0F4F8" stroke="#0E7C90" stroke-width="1.2"/><text x="130" y="128" font-size="12.5" fill="#0B6577" text-anchor="middle">Evidence</text><rect x="360" y="62" width="288" height="106" rx="10" fill="#F1EAFD" stroke="#7C3AED" stroke-width="1.4"/><text x="374" y="83" font-size="13" fill="#6B34C9">Counterclaim</text><rect x="374" y="94" width="152" height="60" rx="8" fill="#FBEAD9" stroke="#D9480F" stroke-width="1.2"/><text x="388" y="112" font-size="12.5" fill="#C23D0E">Rebuttal</text><rect x="388" y="120" width="124" height="26" rx="6" fill="#E0F4F8" stroke="#0E7C90" stroke-width="1"/><text x="450" y="137" font-size="11" fill="#0B6577" text-anchor="middle">Evidence</text><rect x="540" y="94" width="94" height="60" rx="8" fill="#E0F4F8" stroke="#0E7C90" stroke-width="1.2"/><text x="587" y="128" font-size="12" fill="#0B6577" text-anchor="middle">Evidence</text></g></svg><div class="nestcap">Each box sits inside its parent. A box inside another means it supports or answers the one around it.</div></div>
+</div>
+</body>
+</html>

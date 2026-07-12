@@ -10,6 +10,7 @@ import Annotator from './components/Annotator.jsx'
 import AdminPanel from './components/AdminPanel.jsx'
 import ExportPanel from './components/ExportPanel.jsx'
 import ThemeToggle from './components/ThemeToggle.jsx'
+import RulesPage from './components/RulesPage.jsx'
 
 function parseHash() {
   const h = window.location.hash.replace(/^#\/?/, '')
@@ -224,6 +225,8 @@ export default function App() {
     content = <ExportPanel user={session.user} isAdmin={isAdmin} />
   } else if (route.page === 'admin' && isAdmin) {
     content = <AdminPanel user={session.user} />
+  } else if (route.page === 'rules') {
+    content = <RulesPage />
   } else {
     content = <EssayList user={session.user} isAdmin={isAdmin} />
   }

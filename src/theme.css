@@ -1054,3 +1054,15 @@ input[type="color"].swatch-input {
   .cmp-print-portal .diff-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 11px; margin-bottom: 4px; }
   .cmp-print-portal .diff-text { font-size: 12px; }
 }
+
+
+/* ---------- annotation-rules page (isolated iframe) ---------- */
+.rules-frame {
+  width: 100%;
+  height: calc(100vh - 120px);
+  min-height: 520px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  display: block;
+}
